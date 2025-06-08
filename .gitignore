@@ -1,14 +1,2 @@
-# Ignore VSCode settings
-.vscode/
-
 # Ignore build artifacts
-*.o
 *.exe
-*.out
-
-# Ignore temporary files
-*.tmp
-*.swp
-
-# Ignore log files
-*.log
