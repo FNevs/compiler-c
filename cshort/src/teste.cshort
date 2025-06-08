@@ -1,0 +1,32 @@
+
+int main(void) {
+    /* Fase de Declarações: todas as variáveis são declaradas aqui no topo. */
+    int i;
+    int resultado_final;
+    float numero_real;
+    char letra_final;
+    char msg[20];
+    bool condicao;
+
+    /* Fase de Comandos e Testes de Tokens */
+    
+    i = 0;
+    letra_final = 'Z';
+    numero_real = (100.50 + 99.50) / 2.0; 
+    resultado_final = (10 + i) * 3;
+
+    if (resultado_final > 10 && letra_final != 'A' || !condicao) {
+        resultado_final = 1;
+    } else {
+        resultado_final = 2;
+    }
+
+    for (i = 0; i < 5; i = i + 1) {
+        while (i <= 4) {
+            letra_final = '\n';
+            i = i + 1;
+        }
+    }
+    
+    return 0;
+}
