@@ -16,7 +16,7 @@ char *palavras_reservadas[] = {
 };
 const int NUM_PALAVRAS_RESERVADAS = sizeof(palavras_reservadas) / sizeof(palavras_reservadas[0]);
 
-// Constantes para os caracteres de escape que você especificou
+// Constantes para os caracteres de escape 
 #define BARRA_N '\n'
 #define BARRA_0 '\0'
 
@@ -33,7 +33,7 @@ TOKEN Analex(FILE *arquivo_entrada) {
     }
 
     int estado = 0;
-    // Buffers separados, como no seu arquivo de inspiração
+    // Buffers separados
     char lexema[TAMANHO_MAX_LEXEMA];
     char digitos[TAMANHO_NUM];
     char string[TAMANHO_MAX_STRING];
@@ -159,7 +159,7 @@ TOKEN Analex(FILE *arquivo_entrada) {
                 }
                 break;
 
-            // case 1 com a atribuição explícita para o estado q2
+            // case 1 com a atribuição para o estado q2
             case 1:
                 if (isalnum(c) || c == '_') {
                     lexema[tamL++] = c;
@@ -168,7 +168,7 @@ TOKEN Analex(FILE *arquivo_entrada) {
                     ungetc(c, fd);
                     lexema[tamL] = '\0';
                     
-                    estado = 2; // Atribuição explícita para o estado final q2 do AFD
+                    estado = 2; // Atribuição para o estado final q2 do AFD
 
                     // Checa se é Palavra Reservada
                     bool eh_pr = false;
