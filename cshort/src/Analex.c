@@ -89,55 +89,55 @@ TOKEN Analex(FILE *arquivo_entrada) {
                     return t;
                 }
                 else if (c == '*') {
-                    estado = 40;
+                    estado = 41; //41
                     t.cat = SN;
                     t.codigo = MULTIPLICACAO;
                     return t;
                 }
                 else if (c == '-') {
-                    estado = 38;
+                    estado = 39; //39
                     t.cat = SN;
                     t.codigo = SUBTRACAO;
                     return t;
                 }
                 else if (c == '+') {
-                    estado = 39;
+                    estado = 40; //40
                     t.cat = SN;
                     t.codigo = ADICAO;
                     return t;
                 }
                 else if (c == '(') {
-                    estado = 41;
+                    estado = 42; //42
                     t.cat = SN;
                     t.codigo = ABRE_PAREN;
                     return t;
                 }
                 else if (c == ')') {
-                    estado = 42;
+                    estado = 43; //43
                     t.cat = SN;
                     t.codigo = FECHA_PAREN;
                     return t;
                 }
                 else if (c == '[') {
-                    estado = 43;
+                    estado = 44; //44
                     t.cat = SN;
                     t.codigo = ABRE_COLCH;
                     return t;
                 }
                 else if (c == ']') {
-                    estado = 44;
+                    estado = 45; //45
                     t.cat = SN;
                     t.codigo = FECHA_COLCH;
                     return t;
                 }
                 else if (c == '{') {
-                    estado = 45;
+                    estado = 46; //46
                     t.cat = SN;
                     t.codigo = ABRE_CHAVES;
                     return t;
                 }
                 else if (c == '}') {
-                    estado = 46;
+                    estado = 47; //47
                     t.cat = SN;
                     t.codigo = FECHA_CHAVES;
                     return t;
@@ -337,7 +337,7 @@ TOKEN Analex(FILE *arquivo_entrada) {
                     return t;
                 }
                 else {
-                    ungetc(c, fd);
+                    ungetc(c, fd); // Retorna o caractere para o fluxo
                     estado = 24;
                     t.cat = SN;
                     t.codigo = NOT;
