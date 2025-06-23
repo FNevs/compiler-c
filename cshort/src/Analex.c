@@ -7,6 +7,7 @@
 // Definições Globais e Variáveis
 int contLinha = 1;
 TOKEN t;
+TOKEN tLookahead; // Token lookahead
 FILE *fd;
 
 // Definição do array de palavras reservadas
@@ -26,8 +27,35 @@ void erro(char *msg) {
     exit(1);
 }
 
-// Função Principal do Analisador Léxico
-TOKEN Analex(FILE *arquivo_entrada) {
+TOKEN AnaLex(FILE *arquivo_entrada) {
+    static bool inicializar = true;
+
+    if (fd == NULL) {
+        fd = arquivo_entrada;
+    }
+
+    if (inicializar) {
+        inicializar = false;
+        t = AnalexTLA(fd);
+        if (t.cat != FIM_ARQ) {
+            tLookahead = AnalexTLA(fd);
+        } else {
+            tLookahead = t;
+        }
+        return t;
+    }
+    else if (tLookahead.cat == FIM_ARQ) {
+        t = tLookahead;
+        return t;
+    }
+    else {
+        t = tLookahead;
+        tLookahead = AnalexTLA(fd);
+        return t;
+    }
+}
+
+TOKEN AnalexTLA(FILE *arquivo_entrada) {
     if (fd == NULL) {
         fd = arquivo_entrada;
     }
