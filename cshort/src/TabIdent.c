@@ -2,37 +2,67 @@
 #include <stdlib.h>
 #include "TabIdent.h"
 
-void IniciaTabIdentif() {
-    // implementação futura
+void IniciaTabelaID() {
+    tabelaIdentificadores.tamTabela = 0;  
 }
 
-void EditaQtdParams(const char *nomeId, int parametros) {
-    // implementação futura
+/*
+* @brief Retorna o index do Identificador na Tabela de Identificadores
+* @param nomeId Nome do identificador
+*/
+int BuscaTabelaID(const char *nomeId) {
+
+    for (int i = 0; i < tabelaIdentificadores.tamTabela; i++) {
+        if (!(strcmp(nomeId, tabelaIdentificadores.identificadores[i].nome))) {
+            return i;
+        }
+    }
+    return -1;
 }
 
-void EditaNomeArg(const char *nomeId, int index) {
-    // implementação futura
+int BuscaTabelaIDMesmoEscopo(const char *nomeId, int escopo) {
+
+    for (int i = 0; i < tabelaIdentificadores.tamTabela; i++) {
+        if (!(strcmp(nomeId, tabelaIdentificadores.identificadores[i].nome))) {
+            if( tabelaIdentificadores.identificadores[i].escopo == escopo) {
+                return i;
+            }
+        }
+    }
+
+    return -1;
 }
 
-void ExcluiVL(const char *nomeId) {
-    // implementação futura
+int InsereTabelaID(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, int escopo, TIPO_DADO tipo, bool isZombie, bool isArray, int tamArray) {
+    if (tabelaIdentificadores.tamTabela == MAX_IDENTIF) {
+        printf("Estouro na tabela de identificadores!");
+    }
+
+    int i = tabelaIdentificadores.tamTabela;
+    strcpy(tabelaIdentificadores.identificadores[i].nome, nomeId);
+
+    tabelaIdentificadores.identificadores[i].endereco = i;
+    tabelaIdentificadores.identificadores[i].categoria = catId;
+    tabelaIdentificadores.identificadores[i].escopo = escopo;
+    tabelaIdentificadores.identificadores[i].tipo = tipo;
+    tabelaIdentificadores.identificadores[i].zombie = isZombie;
+    tabelaIdentificadores.identificadores[i].array = isArray;
+    tabelaIdentificadores.identificadores[i].tamArray = tamArray;
+
+    tabelaIdentificadores.tamTabela++;
+    return i;
 }
 
-void ZombieARG(const char *nomeId) {
-    // implementação futura
-}
+int removeUltimoIDInserido(int posicaoUltimoInserido)
+{
+    tabelaIdentificadores.identificadores[posicaoUltimoInserido].nome[0] = '\0';
+    tabelaIdentificadores.identificadores[posicaoUltimoInserido].categoria = CAT_VAZIA;
+    tabelaIdentificadores.identificadores[posicaoUltimoInserido].tipo = TIPO_VAZIO;
+    tabelaIdentificadores.identificadores[posicaoUltimoInserido].escopo = 0;
+    tabelaIdentificadores.identificadores[posicaoUltimoInserido].endereco = 0;
+    tabelaIdentificadores.identificadores[posicaoUltimoInserido].array = false;
+    tabelaIdentificadores.identificadores[posicaoUltimoInserido].tamArray = 0;
+    tabelaIdentificadores.identificadores[posicaoUltimoInserido].zombie = false;
 
-int BuscaTabIdetif(const char *nomeId) {
-    // implementação futura
-    return 0;
-}
-
-int BuscaTabIdetifBlk(const char *nomeId) {
-    // implementação futura
-    return 0;
-}
-
-int InsereTabIdentif(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, int escopo, TIPO_DADO tipo, bool isConst, bool isZombie, bool isRef, int parametros) {
-    // implementação futura
-    return 0;
+    return posicaoUltimoInserido - 1;
 }

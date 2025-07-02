@@ -7,12 +7,14 @@
 #define MAX_IDENTIF 100
 
 typedef enum {
+    CAT_VAZIA,
     CAT_VAR,
     CAT_FUNC,
     CAT_PARAM
 } CATEGORIA_IDENTIFICADOR;
 
 typedef enum {
+    TIPO_VAZIO,
     TIPO_INT,
     TIPO_FLOAT,
     TIPO_CHAR,
@@ -24,8 +26,10 @@ typedef struct {
     CATEGORIA_IDENTIFICADOR categoria; 
     TIPO_DADO tipo; // Tipo de dado do símbolo
     int escopo; // Escopo do símbolo (global, local)
+    int endereco;
+    int tamArray;
+    bool array;
     bool zombie; // Se está fora do escopo
-    bool ref;
 } IDENTIFICADOR;
 
 typedef struct {
@@ -39,13 +43,10 @@ extern TOKEN lookahead;
 extern TABELA_IDENTIFICADOR tabelaIdentificadores;
 
 /* Assinatura das Funções */
-void IniciaTabIdentif();
-void EditaQtdParams(const char *nomeId, int parametros);
-void EditaNomeArg(const char *nomeId, int index);
-void ExcluiVL(const char *nomeId);
-void ZombieARG(const char *nomeId);
-int BuscaTabIdetif(const char *nomeId);
-int BuscaTabIdetifBlk(const char *nomeId);
-int InsereTabIdentif(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, int escopo, TIPO_DADO tipo, bool isConst, bool isZombie, bool isRef, int parametros);
+void IniciaTabelaID();
+int BuscaTabelaID(const char *nomeId);
+int BuscaTabelaIDMesmoEscopo(const char *nomeId, int escopo);
+int InsereTabelaID(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, int escopo, TIPO_DADO tipo, bool isZombie, bool isArray, int tamArray);
+int removeUltimoIDInserido(int posicaoUltimoInserido);
 
 #endif 
