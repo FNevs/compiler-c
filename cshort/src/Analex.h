@@ -79,5 +79,6 @@ extern char *palavras_reservas[];
 /* Assinaturas de funcoes*/
 TOKEN Analex(FILE *fd);
 TOKEN AnalexTLA(FILE *fd);
+void erro(char *msg);
 
 #endif

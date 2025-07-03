@@ -20,7 +20,7 @@ int BuscaTabelaID(const char *nomeId) {
     return -1;
 }
 
-int BuscaTabelaIDMesmoEscopo(const char *nomeId, int escopo) {
+int BuscaTabelaIDMesmoEscopo(const char *nomeId, ESCOPO escopo) {
 
     for (int i = 0; i < tabelaIdentificadores.tamTabela; i++) {
         if (!(strcmp(nomeId, tabelaIdentificadores.identificadores[i].nome))) {
@@ -33,7 +33,7 @@ int BuscaTabelaIDMesmoEscopo(const char *nomeId, int escopo) {
     return -1;
 }
 
-int InsereTabelaID(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, int escopo, TIPO_DADO tipo, bool isZombie, bool isArray, int tamArray) {
+int InsereTabelaID(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, ESCOPO escopo, TIPO_DADO tipo, bool isZombie, bool isArray, int tamArray) {
     if (tabelaIdentificadores.tamTabela == MAX_IDENTIF) {
         printf("Estouro na tabela de identificadores!");
     }
@@ -58,7 +58,7 @@ int removeUltimoIDInserido(int posicaoUltimoInserido)
     tabelaIdentificadores.identificadores[posicaoUltimoInserido].nome[0] = '\0';
     tabelaIdentificadores.identificadores[posicaoUltimoInserido].categoria = CAT_VAZIA;
     tabelaIdentificadores.identificadores[posicaoUltimoInserido].tipo = TIPO_VAZIO;
-    tabelaIdentificadores.identificadores[posicaoUltimoInserido].escopo = 0;
+    tabelaIdentificadores.identificadores[posicaoUltimoInserido].escopo = GLOBAL;
     tabelaIdentificadores.identificadores[posicaoUltimoInserido].endereco = 0;
     tabelaIdentificadores.identificadores[posicaoUltimoInserido].array = false;
     tabelaIdentificadores.identificadores[posicaoUltimoInserido].tamArray = 0;
