@@ -31,6 +31,8 @@ void cmd_cont();
 void Atrib();
 
 void Expr();
+void Expr_and();
+void Expr_rel(); 
 void Expr_simp();
 void Termo();
 void Fator();

@@ -480,8 +480,29 @@ void Cmd() {
     }
 }
 
-
+// A NOVA função Expr (ponto de entrada para expressões)
+// Trata o operador de menor precedência: '||'
 void Expr() {
+    // Regra: <expr> ::= <expr_and> { '||' <expr_and> }
+    Expr_and(); // Chama o próximo nível de precedência
+    while (t.cat == SN && t.codigo == OR) {
+        t = Analex(fd);
+        Expr_and();
+    }
+}
+
+// A NOVA função Expr_and
+// Trata o operador '&&'
+void Expr_and() {
+    // Regra: <expr_and> ::= <expr_rel> { '&&' <expr_rel> }
+    Expr_rel(); // Chama o próximo nível de precedência
+    while (t.cat == SN && t.codigo == AND) {
+        t = Analex(fd);
+        Expr_rel();
+    }
+}
+
+void Expr_rel() {
     // Regra: <expr> ::= <expr_simp> [ <op_rel> <expr_simp> ]
     Expr_simp();
 
@@ -513,7 +534,7 @@ void Expr_simp() {
     // 3. Trata a parte repetitiva { ( '+' | '-' | '||' ) <termo> } com um laço.
     // Esta parte lida com operadores de menor precedência.
     while (t.cat == SN &&
-           (t.codigo == ADICAO || t.codigo == SUBTRACAO || t.codigo == OR)) {
+           (t.codigo == ADICAO || t.codigo == SUBTRACAO)) {
         
         // Consome o operador (+, - ou ||)
         t = Analex(fd);
@@ -536,7 +557,7 @@ void Termo() {
     // 2. Trata a parte repetitiva { ( '*' | '/' | '&&' ) <fator> } com um laço.
     // Esta parte lida com operadores de maior precedência que a adição/subtração.
     while (t.cat == SN &&
-           (t.codigo == MULTIPLICACAO || t.codigo == DIVISAO || t.codigo == AND)) {
+           (t.codigo == MULTIPLICACAO || t.codigo == DIVISAO )) {
 
         // Consome o operador (*, / ou &&)
         t = Analex(fd);
