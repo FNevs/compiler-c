@@ -17,27 +17,26 @@ extern FILE *fd;
 extern int contLinha;
 extern ESCOPO escopo;
 
-/* Funções */
+/* Funções das Regras de produção da gramática*/
 void Prog();
 DECL_SINALIZADOR Decl();
 void corpo_func();
 void Decl_var();
 void Tipo();
 void Tipos_param();
-void trata_array();
-
 void Cmd();
 void cmd_cont();
 void Atrib();
-
-void Expr();
-void Expr_and();
-void Expr_rel(); 
+void Expr(); 
 void Expr_simp();
 void Termo();
 void Fator();
 void fator_cont();
 void Op_rel();
 
+/* Funções utilitárias */
+
+void trata_array();
+bool isOp_rel(TOKEN token);
 
 #endif // ANASINT_H

@@ -4,48 +4,57 @@
   não-terminal da gramática abaixo.
 
 ======================================================================
-  Regras de Produção da Gramática Cshort (da Especificação v1.0)
+Regra de Produção da Gramática Cshort - Sem Backtracking 
 ======================================================================
 
-<prog>      ::= { <decl> ';' | <func> }
+<prog>        ::= { decl ( ';' | '{' corpo_func '}' ) }
 
-<decl>      ::= <tipo> <decl_var> { ',' <decl_var> }
+<decl>        ::= <tipo> <decl_var> { ',' <decl_var> }
               | <tipo> <id> '(' <tipos_param> ')' { ',' <id> '(' <tipos_param> ')' }
               | <void> <id> '(' <tipos_param> ')' { ',' <id> '(' <tipos_param> ')' }
 
-<decl_var>  ::= <id> [ '[' <intcon> ']' ]
+<decl_var>    ::= <id> [ '[' <intcon> ']' ]
 
-<tipo>      ::= 'char' | 'int' | 'float' | 'bool'
+<tipo>        ::= 'char' | 'int' | 'float' | 'bool'
 
 <tipos_param> ::= <void>
-                | <tipo> [ '&' ] <id> [ '[' ']' ] { ',' <tipo> [ '&' ] <id> [ '[' ']' ] }
+              | <tipo> [ '&' ] <id> [ '[' ']' ] { ',' <tipo> [ '&' ] <id> [ '[' ']' ] }
 
-<func>      ::= <tipo> <id> '(' <tipos_param> ')' '{' { <tipo> <decl_var> {',' <decl_var>} ';'} { <cmd> } '}'
-              | <void> <id> '(' <tipos_param> ')' '{' { <tipo> <decl_var> {',' <decl_var>} ';'} { <cmd> } '}'
+<corpo_func>  ::= { tipo decl_var { ',' decl_var} ';' } { cmd }
 
-<cmd>       ::= 'if' '(' <expr> ')' <cmd> [ 'else' <cmd> ]
-              | 'while' '(' <expr> ')' <cmd>
-              | 'for' '(' [ <atrib> ] ';' [ <expr> ] ';' [ <atrib> ] ')' <cmd>
-              | 'return' [ <expr> ] ';'
-              | <atrib> ';'
-              | <id> '(' [ <expr> { ',' <expr> } ] ')' ';'
-              | '{' { <cmd> } '}'
+// Regras de Comandos
+<cmd>         ::= 'if' '(' expr ')' cmd [ 'else' cmd ]
+              | 'while' '(' expr ')' cmd
+              | 'for' '(' [atrib] ';' [expr] ';' [atrib] ')' cmd
+              | 'return' [expr] ';'
+              | '{' {cmd} '}'
+              | id cmd_cont
 
-<atrib>     ::= <id> [ '[' <expr> ']' ] '=' <expr>
+<cmd_cont>    ::= '(' [expr {',' expr}] ')' ';'
+              | ['[' expr ']'] '=' expr ';'
 
-<expr>      ::= <expr_simp> [ <op_rel> <expr_simp> ]
 
-<expr_simp> ::= [ '+'|'-' ] <termo> { ( '+' | '-' | '||' ) <termo> }
+<atrib>       ::= <id> [ '[' <expr> ']' ] '=' <expr>
 
-<termo>     ::= <fator> { ( '*' | '/' | '&&' ) <fator> }
+<expr>        ::= <expr_simp> [ <op_rel> <expr_simp> ]
 
-<fator>     ::= <id> [ '[' <expr> ']' ]
-              | <intcon> | <realcon> | <charcon>
-              | <id> '(' [ <expr> { ',' <expr> } ] ')'
-              | '(' <expr> ')'
-              | '!' <fator>
+<expr_simp>   ::= [ '+'|'-' ] <termo> { ( '+' | '-' | '||' ) <termo> }
 
-<op_rel>    ::= '==' | '!=' | '<=' | '<' | '>=' | '>'
+<termo>       ::= <fator> { ( '*' | '/' | '&&' ) <fator> }
+
+// Regras de Fator (fatorada)
+fator         ::= intcon
+              | realcon
+              | charcon
+              | '(' expr ')'
+              | '!' fator
+              | id fator_cont
+
+fator_cont    ::= '[' expr ']'
+              | '(' [expr {',' expr}] ')'
+              | ε
+
+<op_rel>      ::= '==' | '!=' | '<=' | '<' | '>=' | '>'
 
 */
 #include "Anasint.h" 
@@ -62,7 +71,6 @@ void Prog() {
         t = Analex(fd);
         
         if (t.cat==SN) {
-
             if (t.codigo==PONTO_VIRGULA) {
                 t = Analex(fd);
             }
@@ -90,22 +98,17 @@ void Prog() {
 }
 
 void trata_array() {
-    // A função é chamada após um ID, quando se sabe que um '[' virá.
-    
-    // Consome '['
-    t = Analex(fd); 
+    t = Analex(fd); // Consome '['
 
-    // Verifica se há uma constante inteira para o tamanho
     if (t.cat != CT_INT) {
         erro("Tamanho do array deve ser uma constante inteira.");
     }
-    t = Analex(fd); // consome a constante inteira
+    t = Analex(fd); // Consome a CT_INT
 
-    // Verifica o fechamento de colchetes
     if (t.cat != SN || t.codigo != FECHA_COLCH) {
         erro("Esperado ']' para fechar a dimensão do array.");
     }
-    t = Analex(fd); // consome ']'
+    t = Analex(fd); // Consome ']'
 }
 
 
@@ -125,7 +128,7 @@ DECL_SINALIZADOR Decl() {
             erro("Identificador esperado");
         }
 
-        if (tLookahead.cat==SN && tLookahead.codigo==ABRE_COLCH) {
+        if (tLookahead.cat==SN && tLookahead.codigo==ABRE_COLCH) { // Está criando um array
             declFlag = DECL_VAR;
 
             if (tipo == VOID) {
@@ -135,7 +138,7 @@ DECL_SINALIZADOR Decl() {
             trata_array();
         }
 
-        if (tLookahead.cat == SN && tLookahead.codigo == VIRGULA) {
+        if (tLookahead.cat == SN && tLookahead.codigo == VIRGULA) { // Criando outras variaveis do mesmo tipo
             declFlag = DECL_VAR;
 
             if (tipo == VOID) {
@@ -164,18 +167,16 @@ DECL_SINALIZADOR Decl() {
 
             declFlag = DECL_PROT;
             contProt++;
-            t = Analex(fd); // consome ´(´
+            t = Analex(fd); // Consome ´(´
             escopo = LOCAL;
-            t = Analex(fd); 
+            t = Analex(fd);
             Tipos_param();
 
-            if (t.cat != SN || t.codigo != FECHA_PAREN) {
+            if (t.cat != SN || t.codigo != FECHA_PAREN) { // MUDAMOS DO CODIGO ORIGINAL : (t.cat != SN || t.codigo == FECHA_PAREN)
                 erro("Fecha parênteses de fim de parâmetros de função esperado");
             }
 
-            escopo = GLOBAL;
-
-            if (tLookahead.cat == SN && tLookahead.codigo == VIRGULA) {
+            if (tLookahead.cat == SN && tLookahead.codigo == VIRGULA) { // Declara outras variaveis
                 t = Analex(fd);
                 while (t.cat == SN && t.codigo == VIRGULA) {
                     contProt++;
@@ -191,9 +192,8 @@ DECL_SINALIZADOR Decl() {
                         erro("Declaração de parâmetros de função esperado");
                     }
 
-                    t = Analex(fd); // consome ´(´
+                    t = Analex(fd); // Consome ´(´
                     escopo = LOCAL;
-                    t = Analex(fd); 
                     Tipos_param();
 
                     if (t.cat != SN || t.codigo != FECHA_PAREN) {
@@ -219,15 +219,14 @@ DECL_SINALIZADOR Decl() {
 }
 
 void corpo_func() {
-    // Parte 1: Declarações de variáveis locais
+    // Declarações de variáveis locais
     while (t.cat == PR && (t.codigo == INT || t.codigo == CHAR || t.codigo == FLOAT || t.codigo == BOOL)) {
         Tipo(); // Consome o tipo
         
-        Decl_var(); // Chama a função para o primeiro decl_var
+        Decl_var();
         
-        // Trata os outros decl_var (se houver)
-        while(t.cat == SN && t.codigo == VIRGULA) {
-            t = Analex(fd); // consome ','
+        while(t.cat == SN && t.codigo == VIRGULA) { // Trata os outros decl_va
+            t = Analex(fd); // Consome ','
             Decl_var(); // Chama a função para os próximos
         }
         
@@ -241,6 +240,7 @@ void corpo_func() {
     while(t.cat != SN || t.codigo != FECHA_CHAVES) {
         Cmd();
     }
+
 }
 
 
@@ -253,15 +253,15 @@ void Decl_var() {
 
     // Parte opcional para array
     if (t.cat == SN && t.codigo == ABRE_COLCH) {
-        t = Analex(fd); // consome '['
+        t = Analex(fd); // Consome '['
         if (t.cat != CT_INT) {
             erro("Tamanho do array deve ser uma constante inteira.");
         }
-        t = Analex(fd); // consome intcon
+        t = Analex(fd); // Consome intcon
         if (t.cat != SN || t.codigo != FECHA_COLCH) {
             erro("Esperado ']' para fechar dimensão do array.");
         }
-        t = Analex(fd); // consome ']'
+        t = Analex(fd); // Consome ']'
     }
 }
 
@@ -288,7 +288,7 @@ void Tipos_param() {
     else {
         // Primeiro parâmetro (obrigatório se não for void)
         Tipo();
-        // Parâmetro por referência opcional
+
         if (t.cat == SN && t.codigo == E_COMERCIAL) {
             t = Analex(fd); // Consome '&'
         }
@@ -296,14 +296,13 @@ void Tipos_param() {
         t = Analex(fd); // Consome o ID
         // Array opcional
         if (t.cat == SN && t.codigo == ABRE_COLCH) {
-            t = Analex(fd); // consome '['
+            t = Analex(fd); // Consome '['
             if (t.cat != SN || t.codigo != FECHA_COLCH) erro("Esperado ']' em parâmetro de array.");
-            t = Analex(fd); // consome ']'
+            t = Analex(fd); // Consome ']'
         }
 
-        // Demais parâmetros (opcionais, com vírgula)
-        while(t.cat == SN && t.codigo == VIRGULA) {
-            t = Analex(fd); // consome ','
+        while(t.cat == SN && t.codigo == VIRGULA) { // Outros parâmetros
+            t = Analex(fd); // Consome ','
             Tipo();
             if (t.cat == SN && t.codigo == E_COMERCIAL) {
                 t = Analex(fd); // Consome '&'
@@ -311,9 +310,9 @@ void Tipos_param() {
             if (t.cat != ID) erro("Esperado identificador de parâmetro.");
             t = Analex(fd); // Consome o ID
             if (t.cat == SN && t.codigo == ABRE_COLCH) {
-                t = Analex(fd); // consome '['
+                t = Analex(fd); // Consome '['
                 if (t.cat != SN || t.codigo != FECHA_COLCH) erro("Esperado ']' em parâmetro de array.");
-                t = Analex(fd); // consome ']'
+                t = Analex(fd); // Consome ']'
             }
         }
     }
@@ -328,11 +327,10 @@ void cmd_cont() {
         // Consome o '('
         t = Analex(fd);
 
-        // Trata a lista de parâmetros (opcional)
         if (t.cat != SN || t.codigo != FECHA_PAREN) {
             Expr();
             while(t.cat == SN && t.codigo == VIRGULA) {
-                t = Analex(fd); // consome a ','
+                t = Analex(fd); // Consome a ','
                 Expr();
             }
         }
@@ -340,139 +338,133 @@ void cmd_cont() {
         if (t.cat != SN || t.codigo != FECHA_PAREN) {
             erro("Esperado ')' para fechar chamada de função.");
         }
-        t = Analex(fd); // consome ')'
+        t = Analex(fd); // Consome ')'
 
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) {
             erro("Esperado ';' após chamada de função.");
         }
-        t = Analex(fd); // consome ';'
+        t = Analex(fd); // Consome ';'
     }
     // Alternativa 2: Comando de atribuição
     else {
         // Se não for '(', tem que ser uma atribuição.
-        // A regra é [ '[' <expr> ']' ] '=' <expr> ';'
-        // A parte do array é opcional
         if (t.cat == SN && t.codigo == ABRE_COLCH) {
-            t = Analex(fd); // consome '['
+            t = Analex(fd); // Consome '['
             Expr();
             if (t.cat != SN || t.codigo != FECHA_COLCH) {
                 erro("Esperado ']' em atribuição de array.");
             }
-            t = Analex(fd); // consome ']'
+            t = Analex(fd); // Consome ']'
         }
 
         if (t.cat != SN || t.codigo != ATRIB) {
             erro("Esperado '=' em comando de atribuição.");
         }
-        t = Analex(fd); // consome '='
+        t = Analex(fd); // Consome '='
         Expr();
 
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) {
             erro("Esperado ';' após comando de atribuição.");
         }
-        t = Analex(fd); // consome ';'
+        t = Analex(fd); // Consome ';'
     }
 }
 
 
-// Implementa um comando de atribuição (usado no 'for')
 void Atrib() {
     // Regra: <atrib> ::= <id> [ '[' <expr> ']' ] '=' <expr>
-    // Esta função assume que o ID já foi verificado ou consumido
-    // Para o 'for', vamos verificar aqui.
+
     if (t.cat != ID) {
         erro("Esperado identificador no comando de atribuição.");
     }
-    t = Analex(fd); // consome ID
+    t = Analex(fd); // Consome ID
 
     if (t.cat == SN && t.codigo == ABRE_COLCH) {
-        t = Analex(fd); // consome '['
+        t = Analex(fd); // Consome '['
         Expr();
         if (t.cat != SN || t.codigo != FECHA_COLCH) {
             erro("Esperado ']' em atribuição de array.");
         }
-        t = Analex(fd); // consome ']'
+        t = Analex(fd); // Consome ']'
     }
 
     if (t.cat != SN || t.codigo != ATRIB) {
         erro("Esperado '=' em comando de atribuição.");
     }
-    t = Analex(fd); // consome '='
+    t = Analex(fd); // Consome '='
     Expr();
 }
 
 
 void Cmd() {
-    // Distribuidor para os vários tipos de comando
-
     // Comando 'if'
     if (t.cat == PR && t.codigo == IF) {
-        t = Analex(fd); // consome 'if'
+        t = Analex(fd); // Consome 'if'
         if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'if'.");
-        t = Analex(fd); // consome '('
+        t = Analex(fd); // Consome '('
         Expr();
         if (t.cat != SN || t.codigo != FECHA_PAREN) erro("Esperado ')' após expressão do 'if'.");
-        t = Analex(fd); // consome ')'
+        t = Analex(fd); // Consome ')'
         Cmd(); // Processa o comando do bloco 'if'
         
         // Parte opcional 'else'
         if (t.cat == PR && t.codigo == ELSE) {
-            t = Analex(fd); // consome 'else'
+            t = Analex(fd); // Consome 'else'
             Cmd(); // Processa o comando do bloco 'else'
         }
     }
     // Comando 'while'
     else if (t.cat == PR && t.codigo == WHILE) {
-        t = Analex(fd); // consome 'while'
+        t = Analex(fd); // Consome 'while'
         if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'while'.");
-        t = Analex(fd); // consome '('
+        t = Analex(fd); // Consome '('
         Expr();
         if (t.cat != SN || t.codigo != FECHA_PAREN) erro("Esperado ')' após expressão do 'while'.");
-        t = Analex(fd); // consome ')'
+        t = Analex(fd); // Consome ')'
         Cmd();
     }
     // Comando 'for'
     else if (t.cat == PR && t.codigo == FOR) {
-        t = Analex(fd); // consome 'for'
+        t = Analex(fd); // Consome 'for'
         if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'for'.");
-        t = Analex(fd); // consome '('
+        t = Analex(fd); // Consome '('
         // 1a parte: [atrib]
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) Atrib();
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) erro("Esperado ';' na 1a parte do 'for'.");
-        t = Analex(fd); // consome ';'
+        t = Analex(fd); // Consome ';'
         // 2a parte: [expr]
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) Expr();
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) erro("Esperado ';' na 2a parte do 'for'.");
-        t = Analex(fd); // consome ';'
+        t = Analex(fd); // Consome ';'
         // 3a parte: [atrib]
         if (t.cat != SN || t.codigo != FECHA_PAREN) Atrib();
         if (t.cat != SN || t.codigo != FECHA_PAREN) erro("Esperado ')' para fechar o 'for'.");
-        t = Analex(fd); // consome ')'
+        t = Analex(fd); // Consome ')'
         Cmd();
     }
     // Comando 'return'
     else if (t.cat == PR && t.codigo == RETURN) {
-        t = Analex(fd); // consome 'return'
+        t = Analex(fd); // Consome 'return'
         // Expressão opcional
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) {
             Expr();
         }
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) erro("Esperado ';' após 'return'.");
-        t = Analex(fd); // consome ';'
+        t = Analex(fd); // Consome ';'
     }
     // Bloco de comandos
     else if (t.cat == SN && t.codigo == ABRE_CHAVES) {
-        t = Analex(fd); // consome '{'
+        t = Analex(fd); // Consome '{'
         // Processa múltiplos comandos dentro do bloco
         while(t.cat != SN || t.codigo != FECHA_CHAVES) {
             Cmd();
         }
-        t = Analex(fd); // consome '}'
+        t = Analex(fd); // Consome '}'
     }
     // Comando iniciado por ID (atribuição ou chamada de função)
     else if (t.cat == ID) {
-        t = Analex(fd); // consome o ID
-        cmd_cont(); // Deixa a função auxiliar decidir
+        t = Analex(fd); // Consome o ID
+        cmd_cont();
     }
     // Se não for nenhum dos anteriores, é um erro.
     else {
@@ -480,39 +472,14 @@ void Cmd() {
     }
 }
 
-// A NOVA função Expr (ponto de entrada para expressões)
-// Trata o operador de menor precedência: '||'
+
 void Expr() {
-    // Regra: <expr> ::= <expr_and> { '||' <expr_and> }
-    Expr_and(); // Chama o próximo nível de precedência
-    while (t.cat == SN && t.codigo == OR) {
-        t = Analex(fd);
-        Expr_and();
-    }
-}
-
-// A NOVA função Expr_and
-// Trata o operador '&&'
-void Expr_and() {
-    // Regra: <expr_and> ::= <expr_rel> { '&&' <expr_rel> }
-    Expr_rel(); // Chama o próximo nível de precedência
-    while (t.cat == SN && t.codigo == AND) {
-        t = Analex(fd);
-        Expr_rel();
-    }
-}
-
-void Expr_rel() {
     // Regra: <expr> ::= <expr_simp> [ <op_rel> <expr_simp> ]
+
     Expr_simp();
 
-    // A verificação se a parte opcional existe continua a mesma
-    if (t.cat == SN &&
-        (t.codigo == IGUALDADE   || t.codigo == DIFERENTE ||
-         t.codigo == MENOR_QUE    || t.codigo == MAIOR_QUE   ||
-         t.codigo == MENOR_IGUAL  || t.codigo == MAIOR_IGUAL)) {
-        
-        Op_rel(); // Chama a função dedicada para consumir o operador
+    if (isOp_rel(tLookahead)) {
+        Op_rel();
         Expr_simp();
     }
 }
@@ -520,60 +487,41 @@ void Expr_rel() {
 void Expr_simp() {
     // Regra de produção: <expr_simp> ::= [ '+'|'-' ] <termo> { ( '+' | '-' | '||' ) <termo> }
 
-    // 1. Trata a parte opcional do sinal unário no início: [ '+'|'-' ]
-    // A regra de precedência define que o '-' unário tem alta precedência,
-    // mas a gramática o coloca aqui. Vamos seguir a gramática.
     if (t.cat == SN && (t.codigo == ADICAO || t.codigo == SUBTRACAO)) {
-        // Apenas consome o sinal. A ação semântica (ex: negação) viria depois.
         t = Analex(fd);
     }
 
-    // 2. Processa a primeira (e obrigatória) parte <termo>
     Termo();
 
-    // 3. Trata a parte repetitiva { ( '+' | '-' | '||' ) <termo> } com um laço.
-    // Esta parte lida com operadores de menor precedência.
     while (t.cat == SN &&
-           (t.codigo == ADICAO || t.codigo == SUBTRACAO)) {
+           (t.codigo == ADICAO || t.codigo == SUBTRACAO || t.codigo == OR)) {
         
         // Consome o operador (+, - ou ||)
         t = Analex(fd);
 
-        // Processa o próximo <termo> na sequência
         Termo();
     }
-    
-    // O laço termina quando não há mais operadores de adição/subtração/or,
-    // e a função retorna.
 }
 
 
 void Termo() {
-    // Regra de produção: <termo> ::= <fator> { ( '*' | '/' | '&&' ) <fator> }
+    // Regra de produção: <termo> ::= <fator> { ( '*' | '/' | '&&') <fator> }
 
-    // 1. Processa a primeira (e obrigatória) parte <fator>
     Fator();
 
-    // 2. Trata a parte repetitiva { ( '*' | '/' | '&&' ) <fator> } com um laço.
-    // Esta parte lida com operadores de maior precedência que a adição/subtração.
     while (t.cat == SN &&
-           (t.codigo == MULTIPLICACAO || t.codigo == DIVISAO )) {
+           (t.codigo == MULTIPLICACAO || t.codigo == DIVISAO || t.codigo == AND )) {
 
         // Consome o operador (*, / ou &&)
         t = Analex(fd);
 
-        // Processa o próximo <fator> na sequência
         Fator();
     }
-    // O laço termina quando não há mais operadores de multiplicação/divisão/and,
-    // e a função retorna.
 }
 
 
 void fator_cont() {
     // Regra: <fator_cont> ::= '[' <expr> ']' | '(' [ <expr> {',' <expr>} ] ')' | ε
-    // Esta função é chamada DEPOIS de um ID já ter sido consumido.
-    // Olhamos o token ATUAL ('t') para decidir o que fazer.
 
     // Alternativa 1: Acesso a array
     if (t.cat == SN && t.codigo == ABRE_COLCH) {
@@ -592,12 +540,11 @@ void fator_cont() {
         t = Analex(fd);
         
         // Trata a lista de parâmetros: [ <expr> { ',' <expr> } ]
-        // A lista é opcional. Se o próximo token não for ')', então temos parâmetros.
         if (t.cat != SN || t.codigo != FECHA_PAREN) {
-            Expr(); // Processa o primeiro parâmetro (expressão)
-            // Enquanto houver vírgulas, processa os próximos parâmetros
+            Expr();
+            
             while(t.cat == SN && t.codigo == VIRGULA) {
-                t = Analex(fd); // consome a ','
+                t = Analex(fd); // Consome a ','
                 Expr();
             }
         }
@@ -608,12 +555,8 @@ void fator_cont() {
         // Consome o ')'
         t = Analex(fd);
     }
-    // Alternativa 3: ε (epsilon)
     else {
         // Se não for nem '[' nem '(', o fator era apenas uma variável simples.
-        // O ID já foi consumido pela função Fator().
-        // Não fazemos nada, apenas retornamos. O token 't' atual pertence
-        // a outra regra e não deve ser consumido aqui.
         return;
     }
 }
@@ -622,11 +565,9 @@ void fator_cont() {
 void Fator() {
     // Regra: <fator> ::= <intcon> | <realcon> | <charcon> | '(' <expr> ')' | '!' <fator> | <id> <fator_cont>
     
-    // Verifica qual tipo de fator temos com base no token atual 't'
     if (t.cat == CT_INT || t.cat == CT_REAL || t.cat == CT_CHAR) {
         // Casos: <intcon> | <realcon> | <charcon>
-        // Se for uma constante, apenas consumimos o token.
-        t = Analex(fd);
+        t = Analex(fd); // Consome a constante
     } 
     else if (t.cat == SN && t.codigo == ABRE_PAREN) {
         // Caso: '(' <expr> ')'
@@ -640,13 +581,12 @@ void Fator() {
     else if (t.cat == SN && t.codigo == NOT) {
         // Caso: '!' <fator>
         t = Analex(fd); // Consome '!'
-        Fator(); // Chamada recursiva para o fator seguinte
+        Fator();
     }
     else if (t.cat == ID) {
         // Caso: <id> <fator_cont>
-        // O tratamento foi fatorado. Primeiro consumimos o ID...
-        t = Analex(fd);
-        // ...e então chamamos a função auxiliar para tratar o que vem depois.
+        t = Analex(fd); // Consome ID
+
         fator_cont();
     }
     else {
@@ -657,13 +597,16 @@ void Fator() {
 
 void Op_rel() {
     // Regra: <op_rel> ::= '==' | '!=' | '<=' | '<' | '>=' | '>'
-    if (t.cat == SN &&
-        (t.codigo == IGUALDADE   || t.codigo == DIFERENTE ||
-         t.codigo == MENOR_QUE    || t.codigo == MAIOR_QUE   ||
-         t.codigo == MENOR_IGUAL  || t.codigo == MAIOR_IGUAL)) {
-
+    if (isOp_rel(t)) {
         t = Analex(fd); // Consome o token do operador
     } else {
         erro("Esperado um operador relacional (==, !=, <, etc.).");
     }
+}
+
+bool isOp_rel(TOKEN token) {
+    return (t.cat == SN &&
+        (t.codigo == IGUALDADE   || t.codigo == DIFERENTE ||
+         t.codigo == MENOR_QUE    || t.codigo == MAIOR_QUE   ||
+         t.codigo == MENOR_IGUAL  || t.codigo == MAIOR_IGUAL));
 }

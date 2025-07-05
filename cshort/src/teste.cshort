@@ -1,4 +1,8 @@
 
+int i;
+
+int subt(int a)
+
 int main(void) {
     /* Fase de Declarações: todas as variáveis são declaradas aqui no topo. */
     int i;
@@ -15,7 +19,7 @@ int main(void) {
     numero_real = (100.50 + 99.50) / 2.0; 
     resultado_final = (10 + i) * 3;
 
-    if (resultado_final > 10 && letra_final != 'A' || !condicao) {
+    if (resultado_final > 10 && letra_final || !condicao) {
         resultado_final = 1;
     } else {
         resultado_final = 2;
@@ -27,6 +31,6 @@ int main(void) {
             i = i + 1;
         }
     }
-    
+
     return 0;
 }
