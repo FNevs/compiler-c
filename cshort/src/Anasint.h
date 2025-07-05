@@ -3,31 +3,39 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "Analex.h"
 #include "TabIdent.h"
 
-/* Variáveis globais */
+typedef enum { NO_DECL, DECL_VAR, DECL_PROT, DECL_PROT_UNICO } DECL_SINALIZADOR;
+
+/* Variáveis Globais */
 extern TOKEN t;
 extern TOKEN tLookahead;
 extern FILE *fd;
 extern int contLinha;
+extern ESCOPO escopo;
 
-//void parser(); -> uma função de entrada para o analisador sintático
-// verificar se é necessário
-
-/* Assinatura das Funções */
+/* Funções */
 void Prog();
-void Decl();
-void DeclVar();
+DECL_SINALIZADOR Decl();
+void corpo_func();
+void Decl_var();
 void Tipo();
 void Tipos_param();
-void Func();
+void trata_array();
+
 void Cmd();
+void cmd_cont();
 void Atrib();
+
 void Expr();
 void Expr_simp();
 void Termo();
 void Fator();
+void fator_cont();
 void Op_rel();
+
 
 #endif // ANASINT_H

@@ -80,5 +80,6 @@ extern char *palavras_reservas[];
 TOKEN Analex(FILE *fd);
 TOKEN AnalexTLA(FILE *fd);
 void erro(char *msg);
+void printToken(TOKEN token);
 
 #endif
