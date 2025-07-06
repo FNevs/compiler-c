@@ -6,6 +6,7 @@
 
 // Definições Globais e Variáveis
 int contLinha = 1;
+int linhaAtual = 1;
 TOKEN t;
 TOKEN tLookahead; // Token lookahead
 FILE *fd;
@@ -23,13 +24,14 @@ const int NUM_PALAVRAS_RESERVADAS = sizeof(palavras_reservadas) / sizeof(palavra
 
 // Função de Erro
 void erro(char *msg) {
-    fprintf(stderr, "ERRO LÉXICO (Linha %d): %s\n", contLinha, msg);
+    fprintf(stderr, "ERRO LÉXICO (Linha %d): %s\n", linhaAtual, msg);
     exit(1);
 }
 
 TOKEN Analex(FILE *arquivo_entrada) {
     TOKEN t;
     static bool inicializar = true;
+    linhaAtual = contLinha;
 
     if (fd == NULL) {
         fd = arquivo_entrada;
@@ -43,6 +45,7 @@ TOKEN Analex(FILE *arquivo_entrada) {
         } else {
             tLookahead = t;
         }
+
 
         printToken(t);
         return t;
@@ -538,31 +541,31 @@ const char* getSinalStr(int codigo_sinal) {
 void printToken(TOKEN token) {
      switch (token.cat) {
             case ID:
-                printf("Linha %-3d: <ID, %s>\n", contLinha, token.lexema);
+                printf("Linha %-3d: <ID, %s>\n", linhaAtual, token.lexema);
                 break;
             case PR:
-                printf("Linha %-3d: <PR, %s>\n", contLinha, palavras_reservadas[token.codigo]);
+                printf("Linha %-3d: <PR, %s>\n", linhaAtual, palavras_reservadas[token.codigo]);
                 break;
             case CT_INT:
-                printf("Linha %-3d: <CT_INT, %d>\n", contLinha, token.valor_int);
+                printf("Linha %-3d: <CT_INT, %d>\n", linhaAtual, token.valor_int);
                 break;
             case CT_REAL:
-                printf("Linha %-3d: <CT_REAL, %f>\n", contLinha, token.valor_real);
+                printf("Linha %-3d: <CT_REAL, %f>\n", linhaAtual, token.valor_real);
                 break;
             case CT_STRING:
-                printf("Linha %-3d: <CT_STRING, \"%s\">\n", contLinha, token.string);
+                printf("Linha %-3d: <CT_STRING, \"%s\">\n", linhaAtual, token.string);
                 break;
             case CT_CHAR:
                 if (token.caractere == '\n') {
-                    printf("Linha %-3d: <CT_CHAR, '\\n'>\n", contLinha);
+                    printf("Linha %-3d: <CT_CHAR, '\\n'>\n", linhaAtual);
                 } else if (t.caractere == '\0') {
-                    printf("Linha %-3d: <CT_CHAR, '\\0'>\n", contLinha);
+                    printf("Linha %-3d: <CT_CHAR, '\\0'>\n", linhaAtual);
                 } else {
-                    printf("Linha %-3d: <CT_CHAR, '%c'>\n", contLinha, token.caractere);
+                    printf("Linha %-3d: <CT_CHAR, '%c'>\n", linhaAtual, token.caractere);
                 }
                 break;
             case SN:
-                printf("Linha %-3d: <SN, %s>\n", contLinha, getSinalStr(token.codigo));
+                printf("Linha %-3d: <SN, %s>\n", linhaAtual, getSinalStr(token.codigo));
                 break;
             case FIM_ARQ:
                 printf("--- Fim de Arquivo ---\n");

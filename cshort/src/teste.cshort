@@ -1,7 +1,7 @@
 
-int i;
+int i[10], b;
 
-int subt(int a)
+float soma(float a, float b), subtracao(float a, float b);
 
 int main(void) {
     /* Fase de Declarações: todas as variáveis são declaradas aqui no topo. */

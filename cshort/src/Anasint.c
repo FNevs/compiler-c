@@ -66,13 +66,15 @@ void Prog() {
     DECL_SINALIZADOR declFlag;
 
     t = Analex(fd);
+
     while (t.cat != FIM_ARQ) {
         declFlag = Decl();
-        t = Analex(fd);
         
-        if (t.cat==SN) {
+        if (tLookahead.cat==SN) {
+            t = Analex(fd);
+
             if (t.codigo==PONTO_VIRGULA) {
-                t = Analex(fd);
+                t = Analex(fd); // Consome ';'
             }
             else if (t.codigo==ABRE_CHAVES) {
 
@@ -80,19 +82,22 @@ void Prog() {
                     erro("Definição de função inválida");
                 }
 
-                t = Analex(fd);
+                t = Analex(fd); // Consome '{'
                 corpo_func();
 
                 if (!(t.cat==SN && t.codigo==FECHA_CHAVES)) {
                     erro("Fecha chaves esperado");
                 }
 
-                t = Analex(fd);
+                t = Analex(fd); // Consome '}'
 
             }
             else {
                 erro("Ponto e virgula esperado");
             }
+        }   
+        else {   
+            erro("Ponto e virgula esperado");
         }
     }
 }
@@ -108,7 +113,6 @@ void trata_array() {
     if (t.cat != SN || t.codigo != FECHA_COLCH) {
         erro("Esperado ']' para fechar a dimensão do array.");
     }
-    t = Analex(fd); // Consome ']'
 }
 
 
@@ -122,7 +126,7 @@ DECL_SINALIZADOR Decl() {
         t.codigo == CHAR || t.codigo == VOID)) {
         tipo = t.codigo;
 
-        t = Analex(fd);
+        t = Analex(fd); // Consome tipo
 
         if (t.cat != ID) {
             erro("Identificador esperado");
@@ -134,8 +138,11 @@ DECL_SINALIZADOR Decl() {
             if (tipo == VOID) {
                 erro("Tipo void inválido");
             }
+            
+            t = Analex(fd); // Consome ID
 
             trata_array();
+
         }
 
         if (tLookahead.cat == SN && tLookahead.codigo == VIRGULA) { // Criando outras variaveis do mesmo tipo
@@ -145,10 +152,10 @@ DECL_SINALIZADOR Decl() {
                 erro("Tipo void inválido");
             }
 
-            t = Analex(fd);
+            t = Analex(fd); // Consome ID
 
             while (t.cat == SN && t.codigo == VIRGULA) {
-                t = Analex(fd);
+                t = Analex(fd); // Consome ','
                 if (t.cat != ID) {
                     erro("Identificador esperado");
                 }
@@ -156,10 +163,9 @@ DECL_SINALIZADOR Decl() {
                 if (tLookahead.cat==SN && tLookahead.codigo==ABRE_COLCH) {
                     trata_array();
                 }
-                t = Analex(fd); 
             }
         }
-        else if (tLookahead.cat == SN && tLookahead.codigo == ABRE_PAREN) {
+        else if (tLookahead.cat == SN && tLookahead.codigo == ABRE_PAREN) { // Criando definição de função
 
             if (declFlag==DECL_VAR) {
                 erro("Declaração simultânea de variável e função inválida");
@@ -167,26 +173,27 @@ DECL_SINALIZADOR Decl() {
 
             declFlag = DECL_PROT;
             contProt++;
-            t = Analex(fd); // Consome ´(´
+            t = Analex(fd); // Consome ID
             escopo = LOCAL;
-            t = Analex(fd);
+            t = Analex(fd); // Consome '('
             Tipos_param();
 
-            if (t.cat != SN || t.codigo != FECHA_PAREN) { // MUDAMOS DO CODIGO ORIGINAL : (t.cat != SN || t.codigo == FECHA_PAREN)
+            if (t.cat != SN || t.codigo != FECHA_PAREN) {
                 erro("Fecha parênteses de fim de parâmetros de função esperado");
             }
 
             if (tLookahead.cat == SN && tLookahead.codigo == VIRGULA) { // Declara outras variaveis
                 t = Analex(fd);
+
                 while (t.cat == SN && t.codigo == VIRGULA) {
                     contProt++;
-                    t = Analex(fd);
+                    t = Analex(fd); // Consome ','
 
                     if (t.cat != ID) {
                         erro("Identificador esperado");
                     }
 
-                    t = Analex(fd);
+                    t = Analex(fd); // Consome ID
 
                     if (t.cat != SN || t.codigo != ABRE_PAREN) {
                         erro("Declaração de parâmetros de função esperado");
@@ -201,7 +208,6 @@ DECL_SINALIZADOR Decl() {
                     }
 
                     escopo = GLOBAL;
-                    t = Analex(fd);
                 }
             }
 
@@ -278,22 +284,23 @@ void Tipo() {
 void Tipos_param() {
     // Regra: <tipos_param> ::= void | <tipo> ...
 
-    // Caso 1: sem parâmetros (void)
+    // Sem parâmetros (void)
     if (t.cat == PR && t.codigo == VOID) {
         t = Analex(fd); // Consome 'void'
         return;
     }
     
-    // Caso 2: lista de um ou mais parâmetros
+    // Lista de um ou mais parâmetros
     else {
-        // Primeiro parâmetro (obrigatório se não for void)
         Tipo();
 
         if (t.cat == SN && t.codigo == E_COMERCIAL) {
             t = Analex(fd); // Consome '&'
         }
+
         if (t.cat != ID) erro("Esperado identificador de parâmetro.");
         t = Analex(fd); // Consome o ID
+
         // Array opcional
         if (t.cat == SN && t.codigo == ABRE_COLCH) {
             t = Analex(fd); // Consome '['

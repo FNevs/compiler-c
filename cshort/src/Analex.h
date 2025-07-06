@@ -71,6 +71,7 @@ typedef
 
 /* Variaveis globais*/
 extern int contLinha; // Contador de linhas
+extern int linhaAtual; // Representa a linha atual
 extern TOKEN t;
 extern TOKEN tLookahead; // Token lookahead
 extern FILE *fd; // Arquivo de entrada
