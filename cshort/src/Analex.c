@@ -6,6 +6,7 @@
 
 // Definições Globais e Variáveis
 int contLinha = 1;
+int linhaAtual = 1;
 TOKEN t;
 TOKEN tLookahead; // Token lookahead
 FILE *fd;
@@ -23,12 +24,14 @@ const int NUM_PALAVRAS_RESERVADAS = sizeof(palavras_reservadas) / sizeof(palavra
 
 // Função de Erro
 void erro(char *msg) {
-    fprintf(stderr, "ERRO LÉXICO (Linha %d): %s\n", contLinha, msg);
+    fprintf(stderr, "ERRO LÉXICO (Linha %d): %s\n", linhaAtual, msg);
     exit(1);
 }
 
-TOKEN AnaLex(FILE *arquivo_entrada) {
+TOKEN Analex(FILE *arquivo_entrada) {
+    TOKEN t;
     static bool inicializar = true;
+    linhaAtual = contLinha;
 
     if (fd == NULL) {
         fd = arquivo_entrada;
@@ -42,6 +45,9 @@ TOKEN AnaLex(FILE *arquivo_entrada) {
         } else {
             tLookahead = t;
         }
+
+
+        printToken(t);
         return t;
     }
     else if (tLookahead.cat == FIM_ARQ) {
@@ -51,6 +57,7 @@ TOKEN AnaLex(FILE *arquivo_entrada) {
     else {
         t = tLookahead;
         tLookahead = AnalexTLA(fd);
+        printToken(t);
         return t;
     }
 }
@@ -476,57 +483,91 @@ const char* getSinalStr(int codigo_sinal) {
 }
 
 // Função main para Testes 
-int main(int argc, char *argv[]) {
-    // 1. Validação dos Argumentos (melhor que ter o nome do arquivo fixo)
-    if (argc < 2) {
-        fprintf(stderr, "Modo de uso: %s <nome_do_arquivo.cshort>\n", argv[0]);
-        return 1;
-    }
+// int main(int argc, char *argv[]) {
+//     // 1. Validação dos Argumentos (melhor que ter o nome do arquivo fixo)
+//     if (argc < 2) {
+//         fprintf(stderr, "Modo de uso: %s <nome_do_arquivo.cshort>\n", argv[0]);
+//         return 1;
+//     }
 
-    // 2. Abertura do Arquivo Fonte
-    if ((fd = fopen(argv[1], "r")) == NULL) {
-        fprintf(stderr, "ERRO: Arquivo de entrada '%s' não encontrado!\n", argv[1]);
-        return 1;
-    }
+//     // 2. Abertura do Arquivo Fonte
+//     if ((fd = fopen(argv[1], "r")) == NULL) {
+//         fprintf(stderr, "ERRO: Arquivo de entrada '%s' não encontrado!\n", argv[1]);
+//         return 1;
+//     }
 
-    printf("--- Iniciando Análise do Arquivo: %s ---\n", argv[1]);
+//     printf("--- Iniciando Análise do Arquivo: %s ---\n", argv[1]);
 
-    // 3. Laço Principal de Análise
-    while (true) {
-        Analex(fd); // A função preenche a variável global 't'
+//     // 3. Laço Principal de Análise
+//     while (true) {
+//         t = Analex(fd); // A função preenche a variável global 't'
 
-        switch (t.cat) {
+//         switch (t.cat) {
+//             case ID:
+//                 printf("Linha %-3d: <ID, %s>\n", contLinha, t.lexema);
+//                 break;
+//             case PR:
+//                 printf("Linha %-3d: <PR, %s>\n", contLinha, palavras_reservadas[t.codigo]);
+//                 break;
+//             case CT_INT:
+//                 printf("Linha %-3d: <CT_INT, %d>\n", contLinha, t.valor_int);
+//                 break;
+//             case CT_REAL:
+//                 printf("Linha %-3d: <CT_REAL, %f>\n", contLinha, t.valor_real);
+//                 break;
+//             case CT_STRING:
+//                 printf("Linha %-3d: <CT_STRING, \"%s\">\n", contLinha, t.string);
+//                 break;
+//             case CT_CHAR:
+//                 if (t.caractere == '\n') {
+//                     printf("Linha %-3d: <CT_CHAR, '\\n'>\n", contLinha);
+//                 } else if (t.caractere == '\0') {
+//                     printf("Linha %-3d: <CT_CHAR, '\\0'>\n", contLinha);
+//                 } else {
+//                     printf("Linha %-3d: <CT_CHAR, '%c'>\n", contLinha, t.caractere);
+//                 }
+//                 break;
+//             case SN:
+//                 printf("Linha %-3d: <SN, %s>\n", contLinha, getSinalStr(t.codigo));
+//                 break;
+//             case FIM_ARQ:
+//                 printf("--- Fim de Arquivo ---\n");
+//                 fclose(fd);
+//                 return 0; // Encerra o programa
+//         }
+//     }
+// }
+
+void printToken(TOKEN token) {
+     switch (token.cat) {
             case ID:
-                printf("Linha %-3d: <ID, %s>\n", contLinha, t.lexema);
+                printf("Linha %-3d: <ID, %s>\n", linhaAtual, token.lexema);
                 break;
             case PR:
-                printf("Linha %-3d: <PR, %s>\n", contLinha, palavras_reservadas[t.codigo]);
+                printf("Linha %-3d: <PR, %s>\n", linhaAtual, palavras_reservadas[token.codigo]);
                 break;
             case CT_INT:
-                printf("Linha %-3d: <CT_INT, %d>\n", contLinha, t.valor_int);
+                printf("Linha %-3d: <CT_INT, %d>\n", linhaAtual, token.valor_int);
                 break;
             case CT_REAL:
-                printf("Linha %-3d: <CT_REAL, %f>\n", contLinha, t.valor_real);
+                printf("Linha %-3d: <CT_REAL, %f>\n", linhaAtual, token.valor_real);
                 break;
             case CT_STRING:
-                printf("Linha %-3d: <CT_STRING, \"%s\">\n", contLinha, t.string);
+                printf("Linha %-3d: <CT_STRING, \"%s\">\n", linhaAtual, token.string);
                 break;
             case CT_CHAR:
-                if (t.caractere == '\n') {
-                    printf("Linha %-3d: <CT_CHAR, '\\n'>\n", contLinha);
+                if (token.caractere == '\n') {
+                    printf("Linha %-3d: <CT_CHAR, '\\n'>\n", linhaAtual);
                 } else if (t.caractere == '\0') {
-                    printf("Linha %-3d: <CT_CHAR, '\\0'>\n", contLinha);
+                    printf("Linha %-3d: <CT_CHAR, '\\0'>\n", linhaAtual);
                 } else {
-                    printf("Linha %-3d: <CT_CHAR, '%c'>\n", contLinha, t.caractere);
+                    printf("Linha %-3d: <CT_CHAR, '%c'>\n", linhaAtual, token.caractere);
                 }
                 break;
             case SN:
-                printf("Linha %-3d: <SN, %s>\n", contLinha, getSinalStr(t.codigo));
+                printf("Linha %-3d: <SN, %s>\n", linhaAtual, getSinalStr(token.codigo));
                 break;
             case FIM_ARQ:
                 printf("--- Fim de Arquivo ---\n");
-                fclose(fd);
-                return 0; // Encerra o programa
         }
-    }
 }
