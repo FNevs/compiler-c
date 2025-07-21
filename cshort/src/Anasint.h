@@ -25,7 +25,7 @@ void Decl_var();
 void Tipo();
 void Tipos_param();
 void Cmd();
-void cmd_cont();
+void cmd_cont(TOKEN id_alvo);
 void Atrib();
 void Expr(); 
 void Expr_simp();
@@ -38,5 +38,7 @@ void Op_rel();
 
 void trata_array();
 bool isOp_rel(TOKEN token);
+
+extern TABELA_IDENTIFICADOR tabelaIdentificadores;
 
 #endif // ANASINT_H

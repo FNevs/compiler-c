@@ -24,7 +24,7 @@ const int NUM_PALAVRAS_RESERVADAS = sizeof(palavras_reservadas) / sizeof(palavra
 
 // Função de Erro
 void erro(char *msg) {
-    fprintf(stderr, "ERRO LÉXICO (Linha %d): %s\n", linhaAtual, msg);
+    fprintf(stderr, "ERRO (Linha %d): %s\n", linhaAtual, msg);
     exit(1);
 }
 
@@ -47,7 +47,7 @@ TOKEN Analex(FILE *arquivo_entrada) {
         }
 
 
-        printToken(t);
+        //printToken(t);
         return t;
     }
     else if (tLookahead.cat == FIM_ARQ) {
@@ -57,7 +57,7 @@ TOKEN Analex(FILE *arquivo_entrada) {
     else {
         t = tLookahead;
         tLookahead = AnalexTLA(fd);
-        printToken(t);
+        //printToken(t);
         return t;
     }
 }

@@ -3,6 +3,7 @@
 #include "Anasint.h"
 
 // Exemplo de compilação: gcc main.c Anasint.c Analex.c -o meu_compilador
+TABELA_IDENTIFICADOR tabelaIdentificadores;
 
 int main(int argc, char *argv[]) {
     // 1. Verificar se o nome do arquivo foi passado como argumento

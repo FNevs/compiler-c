@@ -2,6 +2,7 @@
 #define _TAB_IDENT_
 
 #include <stdbool.h>
+#include <string.h>
 #include "Analex.h"
 
 #define MAX_IDENTIF 100
