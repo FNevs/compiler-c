@@ -2,6 +2,58 @@
 
 ESCOPO escopo;
 
+
+const char* tipoParaString(TIPO_DADO tipo) {
+    switch (tipo) {
+        case TIPO_INT: return "int";
+        case TIPO_CHAR: return "char";
+        case TIPO_FLOAT: return "float";
+        case TIPO_BOOL: return "bool";
+        case TIPO_VAZIO: return "void";
+        default: return "desconhecido";
+    }
+}
+
+
+void checaCompatibilidadeAritmetica(TIPO_DADO tipo1, TIPO_DADO tipo2) {
+    if ((tipo1 == TIPO_INT || tipo1 == TIPO_CHAR || tipo1 == TIPO_FLOAT) &&
+        (tipo2 == TIPO_INT || tipo2 == TIPO_CHAR || tipo2 == TIPO_FLOAT)) {
+        if ((tipo1 == TIPO_FLOAT && tipo2 != TIPO_FLOAT) || (tipo2 == TIPO_FLOAT && tipo1 != TIPO_FLOAT)) {
+            char msg[100];
+            sprintf(msg, "Conflito de tipos: operação entre float e %s não suportada.", tipoParaString(tipo1 == TIPO_FLOAT ? tipo2 : tipo1));
+            erro(msg);
+        }
+        return;
+    }
+    char msg[100];
+    sprintf(msg, "Tipos incompatíveis para operação aritmética: %s e %s", tipoParaString(tipo1), tipoParaString(tipo2));
+    erro(msg);
+}
+
+
+TIPO_DADO getTipoResultante(TIPO_DADO tipo1, TIPO_DADO tipo2) {
+    if (tipo1 == TIPO_FLOAT && tipo2 == TIPO_FLOAT) return TIPO_FLOAT;
+    if (tipo1 == TIPO_INT || tipo2 == TIPO_INT) return TIPO_INT;
+    return TIPO_CHAR; 
+}
+
+
+void checaCompatibilidadeAtribuicao(TIPO_DADO tipo_lhs, TIPO_DADO tipo_rhs) {
+    if (tipo_lhs == tipo_rhs) return;
+
+    if ((tipo_lhs == TIPO_INT || tipo_lhs == TIPO_CHAR || tipo_lhs == TIPO_BOOL) &&
+        (tipo_rhs == TIPO_INT || tipo_rhs == TIPO_CHAR || tipo_rhs == TIPO_BOOL)) {
+        return;
+    }
+
+    if (tipo_lhs == TIPO_FLOAT && tipo_rhs == TIPO_FLOAT) return;
+
+    char msg[100];
+    sprintf(msg, "Atribuição incompatível: não é possível atribuir tipo '%s' a uma variável do tipo '%s'", tipoParaString(tipo_rhs), tipoParaString(tipo_lhs));
+    erro(msg);
+}
+
+
 TIPO_DADO getTokenTipo(int cod) {
     switch(cod) {
         case INT: return TIPO_INT;
@@ -13,7 +65,6 @@ TIPO_DADO getTokenTipo(int cod) {
 }
 
 int contRotulo = 0;
-
 int novoRotulo() {
     return contRotulo++;
 }
@@ -229,11 +280,13 @@ void Tipos_param() {
     }
 }
 
+
+
 void cmd_cont(TOKEN id_alvo) {
     if (t.cat == SN && t.codigo == ABRE_PAREN) {
         t = Analex(fd);
         if (t.cat != SN || t.codigo != FECHA_PAREN) {
-            Expr();
+            Expr(); 
             while(t.cat == SN && t.codigo == VIRGULA) {
                 t = Analex(fd);
                 Expr();
@@ -249,24 +302,50 @@ void cmd_cont(TOKEN id_alvo) {
         t = Analex(fd);
     }
     else {
+        
+        int idx = BuscaTabelaID(id_alvo.lexema);
+        if (idx == -1) {
+            char msg[100];
+            sprintf(msg, "Variável '%s' não declarada.", id_alvo.lexema);
+            erro(msg);
+        }
+        IDENTIFICADOR id = tabelaIdentificadores.identificadores[idx];
+        TIPO_DADO tipo_lhs = id.tipo;
+        
         if (t.cat == SN && t.codigo == ABRE_COLCH) {
+            if (!id.array) {
+                char msg[100];
+                sprintf(msg, "Variável '%s' não é um array.", id.nome);
+                erro(msg);
+            }
             t = Analex(fd);
-            Expr();
+
+            TIPO_DADO tipo_indice = Expr();
+            if (tipo_indice != TIPO_INT) {
+                erro("O índice de um array deve ser uma expressão do tipo int.");
+            }
+
             if (t.cat != SN || t.codigo != FECHA_COLCH) {
                 erro("Esperado ']' em atribuição de array.");
             }
             t = Analex(fd);
         }
+
         if (t.cat != SN || t.codigo != ATRIB) {
             erro("Esperado '=' em comando de atribuição.");
         }
-        t = Analex(fd);
-        Expr();
+        t = Analex(fd); // Consome '='
+        
+        TIPO_DADO tipo_rhs = Expr();
+        
+        checaCompatibilidadeAtribuicao(tipo_lhs, tipo_rhs);
+        
         printf("STOR %s\n", id_alvo.lexema);
+        
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) {
             erro("Esperado ';' após comando de atribuição.");
         }
-        t = Analex(fd);
+        t = Analex(fd); // Consome ';'
     }
 }
 
@@ -375,48 +454,60 @@ void Cmd() {
 }
 
 
-void Expr() {
-    Expr_simp(); 
-    if (isOp_rel(t)) {
-        TOKEN op = t;
-        Op_rel(); 
-        Expr_simp(); 
-        printf("SUB\n"); 
-    }
-}
-
-
-void Expr_simp() {
-    if (t.cat == SN && (t.codigo == ADICAO || t.codigo == SUBTRACAO)) {
-        t = Analex(fd);
-    }
-    Termo(); 
-    while (t.cat == SN && (t.codigo == ADICAO || t.codigo == SUBTRACAO || t.codigo == OR)) {
-        TOKEN op = t;
-        t = Analex(fd);
-        Termo(); 
-        if (op.codigo == ADICAO) {
-            printf("ADD\n"); 
-        } else if (op.codigo == SUBTRACAO) {
-            printf("SUB\n"); 
-        }
-    }
-}
-
-
-void Termo() {
-    Fator(); 
+TIPO_DADO Termo() {
+    TIPO_DADO tipo_esq = Fator(); 
+    
     while (t.cat == SN && (t.codigo == MULTIPLICACAO || t.codigo == DIVISAO || t.codigo == AND )) {
         TOKEN op = t;
         t = Analex(fd);
-        Fator(); 
-        if (op.codigo == MULTIPLICACAO) {
-            printf("MUL\n");
-        } else if (op.codigo == DIVISAO) {
-            printf("DIV\n");
-        }
+        TIPO_DADO tipo_dir = Fator(); 
+        
+        checaCompatibilidadeAritmetica(tipo_esq, tipo_dir);
+        tipo_esq = getTipoResultante(tipo_esq, tipo_dir); 
+
+        if (op.codigo == MULTIPLICACAO) printf("MUL\n");
+        else if (op.codigo == DIVISAO) printf("DIV\n");
     }
+    return tipo_esq; 
 }
+
+TIPO_DADO Expr_simp() {
+    if (t.cat == SN && (t.codigo == ADICAO || t.codigo == SUBTRACAO)) {
+        t = Analex(fd);
+    }
+    
+    TIPO_DADO tipo_esq = Termo();
+    
+    while (t.cat == SN && (t.codigo == ADICAO || t.codigo == SUBTRACAO || t.codigo == OR)) {
+        TOKEN op = t;
+        t = Analex(fd);
+        TIPO_DADO tipo_dir = Termo();
+
+        checaCompatibilidadeAritmetica(tipo_esq, tipo_dir);
+        tipo_esq = getTipoResultante(tipo_esq, tipo_dir);
+        
+        if (op.codigo == ADICAO) printf("ADD\n"); 
+        else if (op.codigo == SUBTRACAO) printf("SUB\n"); 
+    }
+    return tipo_esq; 
+}
+
+TIPO_DADO Expr() {
+    TIPO_DADO tipo_esq = Expr_simp(); 
+
+    if (isOp_rel(t)) {
+        Op_rel(); 
+        TIPO_DADO tipo_dir = Expr_simp(); 
+
+
+        checaCompatibilidadeAritmetica(tipo_esq, tipo_dir);
+        
+        printf("SUB\n"); 
+        return TIPO_BOOL;
+    }
+    return tipo_esq; 
+}
+
 
 void fator_cont() {
     if (t.cat == SN && t.codigo == ABRE_COLCH) {
@@ -447,30 +538,37 @@ void fator_cont() {
 }
 
 
-void Fator() {
+TIPO_DADO Fator() {
+    TIPO_DADO tipoRetorno = TIPO_VAZIO;
+
     if (t.cat == CT_INT) {
         printf("PUSH %d\n", t.valor_int);
         t = Analex(fd); 
+        return TIPO_INT;
     } 
     else if (t.cat == CT_REAL) {
         printf("PUSH %f\n", t.valor_real);
         t = Analex(fd);
+        return TIPO_FLOAT; 
     }
     else if (t.cat == CT_CHAR) {
         printf("PUSH %d\n", (int)t.caractere);
         t = Analex(fd);
+        return TIPO_CHAR; 
     }
     else if (t.cat == SN && t.codigo == ABRE_PAREN) {
         t = Analex(fd); 
-        Expr();
+        tipoRetorno = Expr(); 
         if (t.cat != SN || t.codigo != FECHA_PAREN) {
             erro("Esperado ')' após expressão em fator.");
         }
         t = Analex(fd);
+        return tipoRetorno;
     }
     else if (t.cat == SN && t.codigo == NOT) {
         t = Analex(fd);
         Fator();
+        return TIPO_BOOL;
     }
     else if (t.cat == ID) {
         TOKEN idToken = t;
@@ -480,9 +578,14 @@ void Fator() {
             sprintf(msg, "Identificador '%s' não declarado", idToken.lexema);
             erro(msg);
         }
+        
+        IDENTIFICADOR id = tabelaIdentificadores.identificadores[idx];
+        tipoRetorno = id.tipo;
+        
         printf("LOAD %s\n", idToken.lexema);
         t = Analex(fd);
         fator_cont();
+        return tipoRetorno;
     }
     else {
         erro("Fator inválido: esperado constante, id, '!' ou '('");

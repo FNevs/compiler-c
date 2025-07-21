@@ -27,11 +27,13 @@ void Tipos_param();
 void Cmd();
 void cmd_cont(TOKEN id_alvo);
 void Atrib();
-void Expr(); 
-void Expr_simp();
-void Termo();
-void Fator();
-void fator_cont();
+
+// Funções que agora retornam o tipo da expressão analisada
+TIPO_DADO Expr(); 
+TIPO_DADO Expr_simp();
+TIPO_DADO Termo();
+TIPO_DADO Fator();
+
 void Op_rel();
 
 /* Funções utilitárias */
