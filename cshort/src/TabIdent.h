@@ -53,7 +53,7 @@ extern TABELA_IDENTIFICADOR tabelaIdentificadores;
 void IniciaTabelaID();
 int BuscaTabelaID(const char *nomeId);
 int BuscaTabelaIDMesmoEscopo(const char *nomeId, ESCOPO escopo);
-int InsereTabelaID(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, ESCOPO escopo, TIPO_DADO tipo, bool isZombie, bool isArray, int tamArray);
+int InsereTabelaID(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, ESCOPO escopo, TIPO_DADO tipo, bool isZombie, bool isArray, int tamArray, int endereco);
 int removeUltimoIDInserido(int posicaoUltimoInserido);
 
 #endif

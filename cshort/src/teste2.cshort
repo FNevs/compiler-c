@@ -1,9 +1,0 @@
-int a;
-float b;
-int resultado;
- 
-void main(void) {
-    a = 10;
-    b = 5.5;
-    resultado = a + b;
-}

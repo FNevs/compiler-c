@@ -63,6 +63,7 @@ fator_cont    ::= '[' expr ']'
 ESCOPO escopo = GLOBAL;
 IDENTIFICADOR funcao_atual;
 int offset_local_atual = 0;
+int offset_global_atual = 0;
 
 
 void processa_lista_declaracao_vars(TIPO_DADO tipo) {
@@ -84,16 +85,20 @@ void processa_lista_declaracao_vars(TIPO_DADO tipo) {
 
     if (t.cat == SN && t.codigo == ABRE_COLCH) {
         // É um array
+
         t = Analex(fd); // Consome '['
         if (t.cat != CT_INT) erro("Tamanho do array deve ser uma constante inteira.");
         int tamArray = t.valor_int;
-        InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipo, false, true, tamArray);
+
+        InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipo, false, true, tamArray, offset_local_atual++);
+
         t = Analex(fd); // Consome o número
         if (t.cat != SN || t.codigo != FECHA_COLCH) erro("Esperado ']' para fechar dimensão do array.");
         t = Analex(fd); // Consome ']'
+
     } else {
         // É uma variável simples
-        InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipo, false, false, 0);
+        InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipo, false, false, 0, offset_local_atual++);
     }
 }
 
@@ -199,7 +204,7 @@ DECL_SINALIZADOR Decl() {
         if (tLookahead.cat == SN && tLookahead.codigo == ABRE_PAREN) {
             contProt = 1;
             declFlag = DECL_PROT;
-            InsereTabelaID(idToken.lexema, CAT_FUNC, escopo, tipoDado, false, false, 0);
+            InsereTabelaID(idToken.lexema, CAT_FUNC, escopo, tipoDado, false, false, 0, 0);
             t = Analex(fd);
             escopo = LOCAL;
             t = Analex(fd);
@@ -224,12 +229,12 @@ DECL_SINALIZADOR Decl() {
                 t = Analex(fd); 
                 if (t.cat != CT_INT) erro("Tamanho do array deve ser uma constante inteira.");
                 int tamArray = t.valor_int;
-                InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipoDado, false, true, tamArray);
+                InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipoDado, false, true, tamArray, offset_global_atual++);
                 t = Analex(fd); 
                 if (t.cat != SN || t.codigo != FECHA_COLCH) erro("Esperado ']' para fechar dimensão do array.");
                 t = Analex(fd); 
             } else {
-                InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipoDado, false, false, 0);
+                InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipoDado, false, false, 0, offset_global_atual++);
             }
 
             while (t.cat == SN && t.codigo == VIRGULA) {
@@ -246,12 +251,12 @@ DECL_SINALIZADOR Decl() {
                      t = Analex(fd); 
                     if (t.cat != CT_INT) erro("Tamanho do array deve ser uma constante inteira.");
                     int tamArray = t.valor_int;
-                    InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipoDado, false, true, tamArray);
+                    InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipoDado, false, true, tamArray, offset_global_atual++);
                     t = Analex(fd); 
                     if (t.cat != SN || t.codigo != FECHA_COLCH) erro("Esperado ']' para fechar dimensão do array.");
                     t = Analex(fd); 
                 } else {
-                    InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipoDado, false, false, 0);
+                    InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipoDado, false, false, 0, offset_global_atual++);
                 }
             }
         }

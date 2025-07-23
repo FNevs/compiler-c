@@ -33,7 +33,7 @@ int BuscaTabelaIDMesmoEscopo(const char *nomeId, ESCOPO escopo) {
     return -1;
 }
 
-int InsereTabelaID(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, ESCOPO escopo, TIPO_DADO tipo, bool isZombie, bool isArray, int tamArray) {
+int InsereTabelaID(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, ESCOPO escopo, TIPO_DADO tipo, bool isZombie, bool isArray, int tamArray, int endereco) {
     if (tabelaIdentificadores.tamTabela == MAX_IDENTIF) {
         printf("Estouro na tabela de identificadores!");
     }
@@ -41,7 +41,9 @@ int InsereTabelaID(const char *nomeId, CATEGORIA_IDENTIFICADOR catId, ESCOPO esc
     int i = tabelaIdentificadores.tamTabela;
     strcpy(tabelaIdentificadores.identificadores[i].nome, nomeId);
 
-    tabelaIdentificadores.identificadores[i].endereco = i;
+    // Usa o endereço passado como parâmetro em vez de 'i'
+    tabelaIdentificadores.identificadores[i].endereco = endereco;
+    
     tabelaIdentificadores.identificadores[i].categoria = catId;
     tabelaIdentificadores.identificadores[i].escopo = escopo;
     tabelaIdentificadores.identificadores[i].tipo = tipo;
