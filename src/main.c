@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "Anasint.h"
-#include "gerador_codigo.h" 
+#include "GeradorCodigo.h" 
 
 TABELA_IDENTIFICADOR tabelaIdentificadores; 
 

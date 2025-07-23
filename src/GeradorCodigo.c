@@ -1,14 +1,10 @@
-#include "gerador_codigo.h"
-#include <stdarg.h> // Necessário para funções com número variável de argumentos
-#include <stdlib.h> // Para a função exit()
+#include "GeradorCodigo.h"
+#include <stdarg.h> 
+#include <stdlib.h> 
 #include <stdio.h>
 
-// Ponteiro estático para o arquivo de saída. 'static' significa que esta variável
-// só é visível dentro deste arquivo, mantendo o módulo encapsulado.
 static FILE* arquivo_saida;
 
-// Contador estático para os rótulos. Garante que cada chamada a novo_rotulo()
-// produza um rótulo diferente e único (L0, L1, L2, ...).
 static int contador_rotulo = 0;
 
 /**
@@ -29,7 +25,7 @@ void inicializar_gerador(const char* nome_arquivo) {
 void finalizar_gerador() {
     if (arquivo_saida != NULL) {
         fclose(arquivo_saida);
-        arquivo_saida = NULL; // Boa prática: define o ponteiro como nulo após fechar.
+        arquivo_saida = NULL; 
     }
 }
 
@@ -38,20 +34,14 @@ void finalizar_gerador() {
  */
 void gerar_codigo(const char* formato, ...) {
     if (arquivo_saida == NULL) {
-        // Medida de segurança: não faz nada se o gerador não foi inicializado.
         return;
     }
 
-    // va_list, va_start, va_end são mecanismos do C para lidar com
-    // funções que aceitam um número variável de argumentos (como o printf).
     va_list args;
     va_start(args, formato);
 
-    // vfprintf é a versão do fprintf que funciona com uma va_list.
-    // Ela escreve a string formatada no arquivo de saída.
     vfprintf(arquivo_saida, formato, args);
 
-    // Adiciona uma quebra de linha após cada instrução para formatar o arquivo de saída.
     fprintf(arquivo_saida, "\n");
 
     va_end(args);
@@ -61,7 +51,6 @@ void gerar_codigo(const char* formato, ...) {
  * Implementação da função que cria um novo rótulo.
  */
 void novo_rotulo(char* rotulo) {
-    // Usa sprintf para formatar a string do rótulo no buffer fornecido.
-    // Ex: na primeira chamada, gera "L0"; na segunda, "L1"; e assim por diante.
+
     sprintf(rotulo, "L%d", contador_rotulo++);
 }
