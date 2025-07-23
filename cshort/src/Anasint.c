@@ -1,56 +1,100 @@
+/*
+  Este arquivo irá conter a implementação do Analisador Sintático
+  Descendente Recursivo (ASDR). Cada função corresponde a um
+  não-terminal da gramática abaixo.
+
+======================================================================
+Regra de Produção da Gramática Cshort - Sem Backtracking 
+======================================================================
+
+<prog>        ::= { decl ( ';' | '{' corpo_func '}' ) }
+
+<decl>        ::= <tipo> <decl_var> { ',' <decl_var> }
+              | <tipo> <id> '(' <tipos_param> ')' { ',' <id> '(' <tipos_param> ')' }
+              | <void> <id> '(' <tipos_param> ')' { ',' <id> '(' <tipos_param> ')' }
+
+<decl_var>    ::= <id> [ '[' <intcon> ']' ]
+
+<tipo>        ::= 'char' | 'int' | 'float' | 'bool'
+
+<tipos_param> ::= <void>
+              | <tipo> [ '&' ] <id> [ '[' ']' ] { ',' <tipo> [ '&' ] <id> [ '[' ']' ] }
+
+<corpo_func>  ::= { tipo decl_var { ',' decl_var} ';' } { cmd }
+
+// Regras de Comandos
+<cmd>         ::= 'if' '(' expr ')' cmd [ 'else' cmd ]
+              | 'while' '(' expr ')' cmd
+              | 'for' '(' [atrib] ';' [expr] ';' [atrib] ')' cmd
+              | 'return' [expr] ';'
+              | '{' {cmd} '}'
+              | id cmd_cont
+
+<cmd_cont>    ::= '(' [expr {',' expr}] ')' ';'
+              | ['[' expr ']'] '=' expr ';'
+
+
+<atrib>       ::= <id> [ '[' <expr> ']' ] '=' <expr>
+
+<expr>        ::= <expr_simp> [ <op_rel> <expr_simp> ]
+
+<expr_simp>   ::= [ '+'|'-' ] <termo> { ( '+' | '-' | '||' ) <termo> }
+
+<termo>       ::= <fator> { ( '*' | '/' | '&&' ) <fator> }
+
+// Regras de Fator (fatorada)
+fator         ::= intcon
+              | realcon
+              | charcon
+              | '(' expr ')'
+              | '!' fator
+              | id fator_cont
+
+fator_cont    ::= '[' expr ']'
+              | '(' [expr {',' expr}] ')'
+              | ε
+
+<op_rel>      ::= '==' | '!=' | '<=' | '<' | '>=' | '>'
+
+*/
+
 #include "Anasint.h" 
 
-ESCOPO escopo;
+ESCOPO escopo = GLOBAL;
+IDENTIFICADOR funcao_atual;
+int offset_local_atual = 0;
 
 
-const char* tipoParaString(TIPO_DADO tipo) {
-    switch (tipo) {
-        case TIPO_INT: return "int";
-        case TIPO_CHAR: return "char";
-        case TIPO_FLOAT: return "float";
-        case TIPO_BOOL: return "bool";
-        case TIPO_VAZIO: return "void";
-        default: return "desconhecido";
+void processa_lista_declaracao_vars(TIPO_DADO tipo) {
+    TOKEN idToken;
+
+    if (t.cat != ID) {
+        erro("Identificador esperado na declaração de variável.");
     }
-}
+    idToken = t;
 
-
-void checaCompatibilidadeAritmetica(TIPO_DADO tipo1, TIPO_DADO tipo2) {
-    if ((tipo1 == TIPO_INT || tipo1 == TIPO_CHAR || tipo1 == TIPO_FLOAT) &&
-        (tipo2 == TIPO_INT || tipo2 == TIPO_CHAR || tipo2 == TIPO_FLOAT)) {
-        if ((tipo1 == TIPO_FLOAT && tipo2 != TIPO_FLOAT) || (tipo2 == TIPO_FLOAT && tipo1 != TIPO_FLOAT)) {
-            char msg[100];
-            sprintf(msg, "Conflito de tipos: operação entre float e %s não suportada.", tipoParaString(tipo1 == TIPO_FLOAT ? tipo2 : tipo1));
-            erro(msg);
-        }
-        return;
-    }
-    char msg[100];
-    sprintf(msg, "Tipos incompatíveis para operação aritmética: %s e %s", tipoParaString(tipo1), tipoParaString(tipo2));
-    erro(msg);
-}
-
-
-TIPO_DADO getTipoResultante(TIPO_DADO tipo1, TIPO_DADO tipo2) {
-    if (tipo1 == TIPO_FLOAT && tipo2 == TIPO_FLOAT) return TIPO_FLOAT;
-    if (tipo1 == TIPO_INT || tipo2 == TIPO_INT) return TIPO_INT;
-    return TIPO_CHAR; 
-}
-
-
-void checaCompatibilidadeAtribuicao(TIPO_DADO tipo_lhs, TIPO_DADO tipo_rhs) {
-    if (tipo_lhs == tipo_rhs) return;
-
-    if ((tipo_lhs == TIPO_INT || tipo_lhs == TIPO_CHAR || tipo_lhs == TIPO_BOOL) &&
-        (tipo_rhs == TIPO_INT || tipo_rhs == TIPO_CHAR || tipo_rhs == TIPO_BOOL)) {
-        return;
+    // Checa por redeclaração no escopo atual
+    if (BuscaTabelaIDMesmoEscopo(idToken.lexema, escopo) != -1) {
+        char msg[100];
+        sprintf(msg, "Redeclaração do identificador '%s'", idToken.lexema);
+        erro(msg);
     }
 
-    if (tipo_lhs == TIPO_FLOAT && tipo_rhs == TIPO_FLOAT) return;
+    t = Analex(fd); // Consome o ID
 
-    char msg[100];
-    sprintf(msg, "Atribuição incompatível: não é possível atribuir tipo '%s' a uma variável do tipo '%s'", tipoParaString(tipo_rhs), tipoParaString(tipo_lhs));
-    erro(msg);
+    if (t.cat == SN && t.codigo == ABRE_COLCH) {
+        // É um array
+        t = Analex(fd); // Consome '['
+        if (t.cat != CT_INT) erro("Tamanho do array deve ser uma constante inteira.");
+        int tamArray = t.valor_int;
+        InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipo, false, true, tamArray);
+        t = Analex(fd); // Consome o número
+        if (t.cat != SN || t.codigo != FECHA_COLCH) erro("Esperado ']' para fechar dimensão do array.");
+        t = Analex(fd); // Consome ']'
+    } else {
+        // É uma variável simples
+        InsereTabelaID(idToken.lexema, CAT_VAR, escopo, tipo, false, false, 0);
+    }
 }
 
 
@@ -82,20 +126,38 @@ void Prog() {
             t = Analex(fd); 
         }
         else if (t.cat == SN && t.codigo == ABRE_CHAVES) {
-            if (declFlag != DECL_PROT_UNICO) {
-                erro("Definição de função inválida ou múltipla na mesma linha");
-            }
-            t = Analex(fd);
-            corpo_func();
+
+            funcao_atual = tabelaIdentificadores.identificadores[tabelaIdentificadores.tamTabela - 1];
+
+            // Gera o cabeçalho da função
+            printf("LABEL %s\n", funcao_atual.nome);
+            printf("INIPR 1\n");
+
+            t = Analex(fd); // Consome o '{'
+            int locais_count = corpo_func();
+            
             if (!(t.cat == SN && t.codigo == FECHA_CHAVES)) {
                 erro("Esperado '}' para fechar o corpo da função");
             }
-            t = Analex(fd);
+            
+            if (locais_count > 0) {
+                printf("DMEM %d\n", locais_count);
+            }
+            printf("RET 1, 0\n");
+
+            t = Analex(fd); // Consome o '}'
         }
         else {
             erro("Esperado ';' ou '{' após a declaração");
         }
     }
+    
+    int main_idx = BuscaTabelaID("main");
+    if (main_idx == -1) {
+        erro("Função 'main' não definida no programa.");
+    }
+    
+    printf("CALL main\n");
     printf("HALT\n");
 }
 
@@ -200,22 +262,42 @@ DECL_SINALIZADOR Decl() {
     return declFlag;
 }
 
-void corpo_func() {
+int corpo_func() {
+    int var_locais_count = 0;
+    offset_local_atual = 0;
+    
+    escopo = LOCAL;
+
+    
     while (t.cat == PR && (t.codigo == INT || t.codigo == CHAR || t.codigo == FLOAT || t.codigo == BOOL)) {
-        Tipo();
-        Decl_var();
+        TIPO_DADO tipo_atual = getTokenTipo(t.codigo);
+        t = Analex(fd);
+
+        processa_lista_declaracao_vars(tipo_atual);
+        var_locais_count++;
+
         while(t.cat == SN && t.codigo == VIRGULA) { 
-            t = Analex(fd); 
-            Decl_var();
+            t = Analex(fd);
+            processa_lista_declaracao_vars(tipo_atual);
+            var_locais_count++;
         }
+        
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) {
             erro("Esperado ';' no final da declaração local.");
         }
         t = Analex(fd);
     }
+
+    if (var_locais_count > 0) {
+        printf("AMEM %d\n", var_locais_count);
+    }
+
     while(t.cat != SN || t.codigo != FECHA_CHAVES) {
         Cmd();
     }
+
+    escopo = GLOBAL;
+    return var_locais_count;
 }
 
 
@@ -309,6 +391,7 @@ void cmd_cont(TOKEN id_alvo) {
             sprintf(msg, "Variável '%s' não declarada.", id_alvo.lexema);
             erro(msg);
         }
+
         IDENTIFICADOR id = tabelaIdentificadores.identificadores[idx];
         TIPO_DADO tipo_lhs = id.tipo;
         
@@ -338,9 +421,11 @@ void cmd_cont(TOKEN id_alvo) {
         
         TIPO_DADO tipo_rhs = Expr();
         
-        checaCompatibilidadeAtribuicao(tipo_lhs, tipo_rhs);
+        checaCompatibilidadeAtribuicao(tipo_lhs, tipo_rhs, id.nome);
         
-        printf("STOR %s\n", id_alvo.lexema);
+        id = tabelaIdentificadores.identificadores[idx];
+        printf("STORE %s\n", id.nome);
+
         
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) {
             erro("Esperado ';' após comando de atribuição.");
@@ -370,7 +455,7 @@ void Atrib() {
     }
     t = Analex(fd);
     Expr();
-    printf("STOR %s\n", id_alvo.lexema);
+    printf("STORE %s\n", id_alvo.lexema);
 }
 
 
@@ -380,7 +465,10 @@ void Cmd() {
         t = Analex(fd); 
         if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'if'.");
         t = Analex(fd); 
-        Expr(); 
+        
+        TIPO_DADO tipo_expr_if = Expr(); // <-- MODIFICADO: Captura o tipo da expressão
+        checaCondicao("if", tipo_expr_if); // <-- NOVO: Checa se a expressão é válida para uma condição 
+        
         if (t.cat != SN || t.codigo != FECHA_PAREN) erro("Esperado ')' após expressão do 'if'.");
         t = Analex(fd); 
  
@@ -407,7 +495,10 @@ void Cmd() {
         t = Analex(fd); 
         if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'while'.");
         t = Analex(fd); 
-        Expr(); 
+        
+        TIPO_DADO tipo_expr_while = Expr();
+        checaCondicao("while", tipo_expr_while);
+        
         if (t.cat != SN || t.codigo != FECHA_PAREN) erro("Esperado ')' após expressão do 'while'.");
         t = Analex(fd);
         printf("GOFALSE L%d\n", rotuloFim);
@@ -420,27 +511,42 @@ void Cmd() {
         t = Analex(fd); if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'for'.");
         t = Analex(fd); 
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) {
-            Atrib(); // Atrib agora gera o STOR
+            Atrib();
         } else {
-            t = Analex(fd); // Consome o primeiro ';'
+            t = Analex(fd); 
         }
         
-        if (t.cat != SN || t.codigo != PONTO_VIRGULA) Expr();
+        if (t.cat != SN || t.codigo != PONTO_VIRGULA) {
+            TIPO_DADO tipo_expr_for = Expr(); 
+            checaCondicao("for", tipo_expr_for);
+        }
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) erro("Esperado ';' na 2a parte do 'for'.");
         t = Analex(fd); 
         if (t.cat != SN || t.codigo != FECHA_PAREN) Atrib();
         if (t.cat != SN || t.codigo != FECHA_PAREN) erro("Esperado ')' para fechar o 'for'.");
-        t = Analex(fd); Cmd();
+        t = Analex(fd); 
+        Cmd();
     }
     else if (t.cat == PR && t.codigo == RETURN) {
         t = Analex(fd);
-        if (t.cat != SN || t.codigo != PONTO_VIRGULA) { Expr(); }
+        
+        TIPO_DADO tipo_retorno = TIPO_VAZIO;
+        bool tem_expressao = (t.cat != SN || t.codigo != PONTO_VIRGULA);
+        
+        if (tem_expressao) {
+            tipo_retorno = Expr(); 
+        }
+        
+        checaRetornoFuncao(funcao_atual, tipo_retorno, tem_expressao);
+        
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) erro("Esperado ';' após 'return'.");
         t = Analex(fd);
     }
     else if (t.cat == SN && t.codigo == ABRE_CHAVES) {
         t = Analex(fd);
-        while(t.cat != SN || t.codigo != FECHA_CHAVES) { Cmd(); }
+        while(t.cat != SN || t.codigo != FECHA_CHAVES) { 
+            Cmd(); 
+        }
         t = Analex(fd);
     }
     else if (t.cat == ID) {
@@ -462,11 +568,16 @@ TIPO_DADO Termo() {
         t = Analex(fd);
         TIPO_DADO tipo_dir = Fator(); 
         
-        checaCompatibilidadeAritmetica(tipo_esq, tipo_dir);
-        tipo_esq = getTipoResultante(tipo_esq, tipo_dir); 
+        if (op.codigo == MULTIPLICACAO || op.codigo == DIVISAO) {
+            tipo_esq = getTipoResultanteAritmetico(tipo_esq, tipo_dir);
+            if (op.codigo == MULTIPLICACAO) printf("MUL\n");
+            else if (op.codigo == DIVISAO) printf("DIV\n");
 
-        if (op.codigo == MULTIPLICACAO) printf("MUL\n");
-        else if (op.codigo == DIVISAO) printf("DIV\n");
+        } else if (op.codigo == AND) {
+            tipo_esq = getTipoResultanteLogico(tipo_esq, tipo_dir);
+
+            printf("AND\n");
+        }
     }
     return tipo_esq; 
 }
@@ -483,58 +594,145 @@ TIPO_DADO Expr_simp() {
         t = Analex(fd);
         TIPO_DADO tipo_dir = Termo();
 
-        checaCompatibilidadeAritmetica(tipo_esq, tipo_dir);
-        tipo_esq = getTipoResultante(tipo_esq, tipo_dir);
-        
-        if (op.codigo == ADICAO) printf("ADD\n"); 
-        else if (op.codigo == SUBTRACAO) printf("SUB\n"); 
+        if (op.codigo == ADICAO || op.codigo == SUBTRACAO) {
+            tipo_esq = getTipoResultanteAritmetico(tipo_esq, tipo_dir);
+            if (op.codigo == ADICAO) printf("ADD\n"); 
+            else if (op.codigo == SUBTRACAO) printf("SUB\n"); 
+
+        } else if (op.codigo == OR) {
+            tipo_esq = getTipoResultanteLogico(tipo_esq, tipo_dir);
+            printf("OR\n");
+        }
     }
     return tipo_esq; 
 }
 
+    
 TIPO_DADO Expr() {
     TIPO_DADO tipo_esq = Expr_simp(); 
 
     if (isOp_rel(t)) {
-        Op_rel(); 
+        TOKEN op = t;
+        Op_rel(); // Consome o operador relacional
         TIPO_DADO tipo_dir = Expr_simp(); 
 
-
-        checaCompatibilidadeAritmetica(tipo_esq, tipo_dir);
+        // A checagem semântica garante que os tipos são comparáveis
+        TIPO_DADO tipo_resultado = getTipoResultanteRelacional(tipo_esq, tipo_dir);
         
+        // --- INÍCIO DO CÓDIGO COMPLETADO ---
+
+        // Passo 1: Deixar o resultado de (esquerda - direita) na pilha.
+        // A pilha agora conterá o resultado de 'tipo_esq - tipo_dir'.
         printf("SUB\n"); 
-        return TIPO_BOOL;
+        
+        // Passo 2: Gerar a instrução de comparação específica.
+        // Assumimos que a Máquina de Pilha tem opcodes que
+        // consomem o resultado da subtração, o comparam com zero,
+        // e empilham 1 (true) ou 0 (false).
+        switch (op.codigo) {
+            case IGUALDADE:
+                // Se (a-b) == 0, então a == b.
+                printf("EQ\n");
+                break;
+            case DIFERENTE:
+                // Se (a-b) != 0, então a != b.
+                printf("NE\n");
+                break;
+            case MENOR_QUE:
+                // Se (a-b) < 0, então a < b.
+                printf("LT\n");
+                break;
+            case MENOR_IGUAL:
+                // Se (a-b) <= 0, então a <= b.
+                printf("LE\n");
+                break;
+            case MAIOR_QUE:
+                // Se (a-b) > 0, então a > b.
+                printf("GT\n");
+                break;
+            case MAIOR_IGUAL:
+                // Se (a-b) >= 0, então a >= b.
+                printf("GE\n");
+                break;
+        }
+        // --- FIM DO CÓDIGO COMPLETADO ---
+        
+        return tipo_resultado; // O tipo da expressão é sempre booleano
     }
     return tipo_esq; 
 }
 
 
-void fator_cont() {
-    if (t.cat == SN && t.codigo == ABRE_COLCH) {
-        t = Analex(fd);
-        Expr();
-        if (t.cat != SN || t.codigo != FECHA_COLCH) {
-            erro("Esperado ']' para fechar acesso ao array.");
+void fator_cont(IDENTIFICADOR func_id) {
+    t = Analex(fd); // Consome o '('
+
+    // Vamos assumir que os parâmetros da função estão na tabela de símbolos
+    // logo após a própria função. Precisamos encontrar o primeiro.
+    int indice_primeiro_param = func_id.endereco + 1;
+    int arg_count = 0;
+
+    if (t.cat != SN || t.codigo != FECHA_PAREN) {
+        // Processa o primeiro argumento
+        arg_count++;
+        TIPO_DADO tipo_arg = Expr();
+        
+        // Validação do primeiro argumento
+        if (tabelaIdentificadores.identificadores[indice_primeiro_param].categoria != CAT_PARAM) {
+            erro_semantico("Função '%s' não espera argumentos.", func_id.nome);
         }
-        t = Analex(fd);
-    }
-    else if (t.cat == SN && t.codigo == ABRE_PAREN) {
-        t = Analex(fd);
-        if (t.cat != SN || t.codigo != FECHA_PAREN) {
-            Expr();
-            while(t.cat == SN && t.codigo == VIRGULA) {
-                t = Analex(fd);
-                Expr();
+        TIPO_DADO tipo_param_esperado = tabelaIdentificadores.identificadores[indice_primeiro_param].tipo;
+        checaCompatibilidadeAtribuicao(tipo_param_esperado, tipo_arg, "argumento de função");
+
+        // Loop para processar os outros argumentos
+        while(t.cat == SN && t.codigo == VIRGULA) {
+            t = Analex(fd);
+            arg_count++;
+            tipo_arg = Expr();
+
+            // Validação dos argumentos subsequentes
+            int indice_param_atual = indice_primeiro_param + arg_count - 1;
+             if (tabelaIdentificadores.identificadores[indice_param_atual].categoria != CAT_PARAM) {
+                erro_semantico("Excesso de argumentos para a função '%s'.", func_id.nome);
             }
+            tipo_param_esperado = tabelaIdentificadores.identificadores[indice_param_atual].tipo;
+            checaCompatibilidadeAtribuicao(tipo_param_esperado, tipo_arg, "argumento de função");
         }
-        if (t.cat != SN || t.codigo != FECHA_PAREN) {
-            erro("Esperado ')' para fechar chamada de função.");
-        }
-        t = Analex(fd);
     }
-    else {
+
+    // TODO: Adicionar checagem final para ver se o número de argumentos bate com o número de parâmetros.
+
+    if (t.cat != SN || t.codigo != FECHA_PAREN) {
+        erro("Esperado ')' para fechar chamada de função.");
+    }
+    t = Analex(fd); // Consome o ')'
+}
+
+
+void fator_cont_array(IDENTIFICADOR id) {
+    if (t.cat != SN || t.codigo != ABRE_COLCH) {
         return;
     }
+    
+    if (!id.array) {
+        erro_semantico("Variável '%s' não é um array e não pode ser indexada.", id.nome);
+    }
+    
+    t = Analex(fd); // Consome o '['
+    
+    TIPO_DADO tipo_indice = Expr();
+    
+    if (tipo_indice != TIPO_INT) {
+        erro_semantico("O índice de um array deve ser uma expressão do tipo int.");
+    }
+    
+    printf("ADD\n");
+    
+    printf("LDSTK %d\n", id.escopo == GLOBAL ? 0 : 1);
+    
+    if (t.cat != SN || t.codigo != FECHA_COLCH) {
+        erro("Esperado ']' para fechar acesso ao array.");
+    }
+    t = Analex(fd); // Consome o ']'
 }
 
 
@@ -574,18 +772,36 @@ TIPO_DADO Fator() {
         TOKEN idToken = t;
         int idx = BuscaTabelaID(idToken.lexema);
         if (idx == -1) {
-            char msg[100];
-            sprintf(msg, "Identificador '%s' não declarado", idToken.lexema);
-            erro(msg);
+            erro("ERRO: Identificador não encontrado.");
         }
         
         IDENTIFICADOR id = tabelaIdentificadores.identificadores[idx];
-        tipoRetorno = id.tipo;
         
-        printf("LOAD %s\n", idToken.lexema);
-        t = Analex(fd);
-        fator_cont();
-        return tipoRetorno;
+        t = Analex(fd); // Consome o ID
+        
+        if (t.cat == SN && t.codigo == ABRE_PAREN) {
+            if (id.categoria != CAT_FUNC) {
+                 erro_semantico("Identificador '%s' não é uma função.", id.nome);
+            }
+            fator_cont(id);
+            return id.tipo;
+        } 
+        // Se não for uma função, é uma variável.
+        else {
+             if (id.categoria != CAT_VAR) {
+                 erro_semantico("Uso inválido do identificador de função '%s' como variável.", id.nome);
+            }
+            
+            if (id.array) {
+                printf("PUSH %d\n", id.endereco);
+            } else {
+                printf("LOAD %d, %d\n", id.escopo == GLOBAL ? 0 : 1, id.endereco);
+            }
+
+            fator_cont_array(id);
+
+            return id.tipo;
+        }
     }
     else {
         erro("Fator inválido: esperado constante, id, '!' ou '('");

@@ -1,16 +1,5 @@
-int a;
-int b;
-int resultado;
- 
 int main(void) {
- 
-    if (a < b) {
-      resultado = 20;
-    } else {
-      resultado = 0;
-    }
- 
-    while (a > 0) {
-      a = a - 1;
-    }
+  int a;
+  a = 1+5;
+  return 0;
 }

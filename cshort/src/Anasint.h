@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include "Analex.h"
 #include "TabIdent.h"
+#include "Anasem.h"
 
 typedef enum { NO_DECL, DECL_VAR, DECL_PROT, DECL_PROT_UNICO } DECL_SINALIZADOR;
 
@@ -20,13 +21,14 @@ extern ESCOPO escopo;
 /* Funções das Regras de produção da gramática*/
 void Prog();
 DECL_SINALIZADOR Decl();
-void corpo_func();
+int corpo_func();
 void Decl_var();
 void Tipo();
 void Tipos_param();
 void Cmd();
 void cmd_cont(TOKEN id_alvo);
 void Atrib();
+void fator_cont(IDENTIFICADOR func_id);
 
 // Funções que agora retornam o tipo da expressão analisada
 TIPO_DADO Expr(); 
