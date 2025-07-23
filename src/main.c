@@ -20,17 +20,17 @@ int main(int argc, char *argv[]) {
     }
 
     // Inicializa o gerador de código.
-    inicializar_gerador("saida.mp");
+    InicializarGerador("saida.mp");
 
     // Chamar a função inicial do Analisador Sintático
     printf("Iniciando análise sintática do arquivo: %s\n\n", argv[1]);
 
     Prog(); // Ponto de entrada do parser
 
-    finalizar_gerador();
+    FinalizarGerador();
 
     // Atualiza a mensagem de sucesso
-    printf("\nAnálise concluída! Código para a Máquina de Pilha salvo em 'saida.mp'.\n", argv[1]);
+    printf("\nAnálise concluída! Código para a Máquina de Pilha salvo em 'saida.mp'.\n");
 
 
     // Fechar o arquivo e terminar

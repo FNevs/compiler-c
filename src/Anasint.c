@@ -123,7 +123,7 @@ int novoRotulo() {
 void Prog() {
     DECL_SINALIZADOR declFlag;
  
-    gerar_codigo("INIP");
+    GerarCodigo("INIP");
     t = Analex(fd);
  
     while (t.cat != FIM_ARQ) {
@@ -136,8 +136,8 @@ void Prog() {
             funcao_atual = tabelaIdentificadores.identificadores[tabelaIdentificadores.tamTabela - 1];
 
             // Gera o cabeçalho da função
-            gerar_codigo("LABEL %s", funcao_atual.nome);
-            gerar_codigo("INIPR 1");
+            GerarCodigo("LABEL %s", funcao_atual.nome);
+            GerarCodigo("INIPR 1");
 
             t = Analex(fd); // Consome o '{'
             int locais_count = corpo_func();
@@ -147,9 +147,9 @@ void Prog() {
             }
             
             if (locais_count > 0) {
-                gerar_codigo("DMEM %d", locais_count);
+                GerarCodigo("DMEM %d", locais_count);
             }
-            gerar_codigo("RET 1, 0");
+            GerarCodigo("RET 1, 0");
 
             t = Analex(fd); // Consome o '}'
         }
@@ -163,8 +163,8 @@ void Prog() {
         erro("Função 'main' não definida no programa.");
     }
     
-    gerar_codigo("CALL main");
-    gerar_codigo("HALT");
+    GerarCodigo("CALL main");
+    GerarCodigo("HALT");
 }
 
 
@@ -295,7 +295,7 @@ int corpo_func() {
     }
 
     if (var_locais_count > 0) {
-        gerar_codigo("AMEM %d", var_locais_count);
+        GerarCodigo("AMEM %d", var_locais_count);
     }
 
     while(t.cat != SN || t.codigo != FECHA_CHAVES) {
@@ -430,7 +430,7 @@ void cmd_cont(TOKEN id_alvo) {
         checaCompatibilidadeAtribuicao(tipo_lhs, tipo_rhs, id.nome);
         
         id = tabelaIdentificadores.identificadores[idx];
-        gerar_codigo("STOR %s", id.nome);
+        GerarCodigo("STOR %s", id.nome);
 
         
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) {
@@ -479,25 +479,25 @@ void Cmd() {
         t = Analex(fd); 
  
         rotuloElse = novoRotulo();
-        gerar_codigo("GOFALSE L%d", rotuloElse);
+        GerarCodigo("GOFALSE L%d", rotuloElse);
         Cmd(); 
 
         if (t.cat == PR && t.codigo == ELSE) {
             rotuloFim = novoRotulo();
-            gerar_codigo("GOTO L%d", rotuloFim);
-            gerar_codigo("LABEL L%d", rotuloElse);
+            GerarCodigo("GOTO L%d", rotuloFim);
+            GerarCodigo("LABEL L%d", rotuloElse);
             t = Analex(fd); 
             Cmd(); 
-            gerar_codigo("LABEL L%d", rotuloFim);
+            GerarCodigo("LABEL L%d", rotuloFim);
         } else {
-            gerar_codigo("LABEL L%d", rotuloElse);
+            GerarCodigo("LABEL L%d", rotuloElse);
         }
     }
     else if (t.cat == PR && t.codigo == WHILE) {
         int rotuloInicio, rotuloFim;
         rotuloInicio = novoRotulo();
         rotuloFim = novoRotulo();
-        gerar_codigo("LABEL L%d", rotuloInicio);
+        GerarCodigo("LABEL L%d", rotuloInicio);
         t = Analex(fd); 
         if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'while'.");
         t = Analex(fd); 
@@ -507,11 +507,11 @@ void Cmd() {
         
         if (t.cat != SN || t.codigo != FECHA_PAREN) erro("Esperado ')' após expressão do 'while'.");
         t = Analex(fd);
-        gerar_codigo("GOFALSE L%d", rotuloFim);
+        GerarCodigo("GOFALSE L%d", rotuloFim);
         Cmd(); 
 
-        gerar_codigo("GOTO L%d", rotuloInicio);
-        gerar_codigo("LABEL L%d", rotuloFim);
+        GerarCodigo("GOTO L%d", rotuloInicio);
+        GerarCodigo("LABEL L%d", rotuloFim);
     }
     else if (t.cat == PR && t.codigo == FOR) {
         t = Analex(fd); if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'for'.");
@@ -576,13 +576,13 @@ TIPO_DADO Termo() {
         
         if (op.codigo == MULTIPLICACAO || op.codigo == DIVISAO) {
             tipo_esq = getTipoResultanteAritmetico(tipo_esq, tipo_dir);
-            if (op.codigo == MULTIPLICACAO) gerar_codigo("MUL");
-            else if (op.codigo == DIVISAO) gerar_codigo("DIV");
+            if (op.codigo == MULTIPLICACAO) GerarCodigo("MUL");
+            else if (op.codigo == DIVISAO) GerarCodigo("DIV");
 
         } else if (op.codigo == AND) {
             tipo_esq = getTipoResultanteLogico(tipo_esq, tipo_dir);
 
-            gerar_codigo("AND");
+            GerarCodigo("AND");
         }
     }
     return tipo_esq; 
@@ -602,12 +602,12 @@ TIPO_DADO Expr_simp() {
 
         if (op.codigo == ADICAO || op.codigo == SUBTRACAO) {
             tipo_esq = getTipoResultanteAritmetico(tipo_esq, tipo_dir);
-            if (op.codigo == ADICAO) gerar_codigo("ADD"); 
-            else if (op.codigo == SUBTRACAO) gerar_codigo("SUB"); 
+            if (op.codigo == ADICAO) GerarCodigo("ADD"); 
+            else if (op.codigo == SUBTRACAO) GerarCodigo("SUB"); 
 
         } else if (op.codigo == OR) {
             tipo_esq = getTipoResultanteLogico(tipo_esq, tipo_dir);
-            gerar_codigo("OR");
+            GerarCodigo("OR");
         }
     }
     return tipo_esq; 
@@ -624,32 +624,32 @@ TIPO_DADO Expr() {
 
         TIPO_DADO tipo_resultado = getTipoResultanteRelacional(tipo_esq, tipo_dir);
         
-        gerar_codigo("SUB"); 
+        GerarCodigo("SUB"); 
         
         switch (op.codigo) {
             case IGUALDADE:
                 // Se (a-b) == 0, então a == b.
-                gerar_codigo("EQ");
+                GerarCodigo("EQ");
                 break;
             case DIFERENTE:
                 // Se (a-b) != 0, então a != b.
-                gerar_codigo("NE");
+                GerarCodigo("NE");
                 break;
             case MENOR_QUE:
                 // Se (a-b) < 0, então a < b.
-                gerar_codigo("LT");
+                GerarCodigo("LT");
                 break;
             case MENOR_IGUAL:
                 // Se (a-b) <= 0, então a <= b.
-                gerar_codigo("LE");
+                GerarCodigo("LE");
                 break;
             case MAIOR_QUE:
                 // Se (a-b) > 0, então a > b.
-                gerar_codigo("GT");
+                GerarCodigo("GT");
                 break;
             case MAIOR_IGUAL:
                 // Se (a-b) >= 0, então a >= b.
-                gerar_codigo("GE");
+                GerarCodigo("GE");
                 break;
         }
         
@@ -719,9 +719,9 @@ void fator_cont_array(IDENTIFICADOR id) {
         erro_semantico("O índice de um array deve ser uma expressão do tipo int.");
     }
     
-    gerar_codigo("ADD");
+    GerarCodigo("ADD");
     
-    gerar_codigo("LDSTK %d", id.escopo == GLOBAL ? 0 : 1);
+    GerarCodigo("LDSTK %d", id.escopo == GLOBAL ? 0 : 1);
     
     if (t.cat != SN || t.codigo != FECHA_COLCH) {
         erro("Esperado ']' para fechar acesso ao array.");
@@ -734,17 +734,17 @@ TIPO_DADO Fator() {
     TIPO_DADO tipoRetorno = TIPO_VAZIO;
 
     if (t.cat == CT_INT) {
-        gerar_codigo("PUSH %d", t.valor_int);
+        GerarCodigo("PUSH %d", t.valor_int);
         t = Analex(fd); 
         return TIPO_INT;
     } 
     else if (t.cat == CT_REAL) {
-        gerar_codigo("PUSH %f", t.valor_real);
+        GerarCodigo("PUSH %f", t.valor_real);
         t = Analex(fd);
         return TIPO_FLOAT; 
     }
     else if (t.cat == CT_CHAR) {
-        gerar_codigo("PUSH %d", (int)t.caractere);
+        GerarCodigo("PUSH %d", (int)t.caractere);
         t = Analex(fd);
         return TIPO_CHAR; 
     }
@@ -787,9 +787,9 @@ TIPO_DADO Fator() {
             }
             
             if (id.array) {
-                gerar_codigo("PUSH %d", id.endereco);
+                GerarCodigo("PUSH %d", id.endereco);
             } else {
-                gerar_codigo("LOAD %d, %d", id.escopo == GLOBAL ? 0 : 1, id.endereco);
+                GerarCodigo("LOAD %d, %d", id.escopo == GLOBAL ? 0 : 1, id.endereco);
             }
 
             fator_cont_array(id);
