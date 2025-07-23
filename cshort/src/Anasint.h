@@ -8,6 +8,7 @@
 #include "Analex.h"
 #include "TabIdent.h"
 #include "Anasem.h"
+#include "gerador_codigo.h"
 
 typedef enum { NO_DECL, DECL_VAR, DECL_PROT, DECL_PROT_UNICO } DECL_SINALIZADOR;
 

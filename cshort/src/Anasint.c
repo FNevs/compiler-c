@@ -60,6 +60,7 @@ fator_cont    ::= '[' expr ']'
 
 #include "Anasint.h" 
 
+
 ESCOPO escopo = GLOBAL;
 IDENTIFICADOR funcao_atual;
 int offset_local_atual = 0;
@@ -122,7 +123,7 @@ int novoRotulo() {
 void Prog() {
     DECL_SINALIZADOR declFlag;
  
-    printf("INIP\n");
+    gerar_codigo("INIP");
     t = Analex(fd);
  
     while (t.cat != FIM_ARQ) {
@@ -135,8 +136,8 @@ void Prog() {
             funcao_atual = tabelaIdentificadores.identificadores[tabelaIdentificadores.tamTabela - 1];
 
             // Gera o cabeçalho da função
-            printf("LABEL %s\n", funcao_atual.nome);
-            printf("INIPR 1\n");
+            gerar_codigo("LABEL %s", funcao_atual.nome);
+            gerar_codigo("INIPR 1");
 
             t = Analex(fd); // Consome o '{'
             int locais_count = corpo_func();
@@ -146,9 +147,9 @@ void Prog() {
             }
             
             if (locais_count > 0) {
-                printf("DMEM %d\n", locais_count);
+                gerar_codigo("DMEM %d", locais_count);
             }
-            printf("RET 1, 0\n");
+            gerar_codigo("RET 1, 0");
 
             t = Analex(fd); // Consome o '}'
         }
@@ -162,8 +163,8 @@ void Prog() {
         erro("Função 'main' não definida no programa.");
     }
     
-    printf("CALL main\n");
-    printf("HALT\n");
+    gerar_codigo("CALL main");
+    gerar_codigo("HALT");
 }
 
 
@@ -294,7 +295,7 @@ int corpo_func() {
     }
 
     if (var_locais_count > 0) {
-        printf("AMEM %d\n", var_locais_count);
+        gerar_codigo("AMEM %d", var_locais_count);
     }
 
     while(t.cat != SN || t.codigo != FECHA_CHAVES) {
@@ -429,7 +430,7 @@ void cmd_cont(TOKEN id_alvo) {
         checaCompatibilidadeAtribuicao(tipo_lhs, tipo_rhs, id.nome);
         
         id = tabelaIdentificadores.identificadores[idx];
-        printf("STORE %s\n", id.nome);
+        gerar_codigo("STOR %s", id.nome);
 
         
         if (t.cat != SN || t.codigo != PONTO_VIRGULA) {
@@ -460,7 +461,7 @@ void Atrib() {
     }
     t = Analex(fd);
     Expr();
-    printf("STORE %s\n", id_alvo.lexema);
+    printf("STOR %s", id_alvo.lexema);
 }
 
 
@@ -471,32 +472,32 @@ void Cmd() {
         if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'if'.");
         t = Analex(fd); 
         
-        TIPO_DADO tipo_expr_if = Expr(); // <-- MODIFICADO: Captura o tipo da expressão
-        checaCondicao("if", tipo_expr_if); // <-- NOVO: Checa se a expressão é válida para uma condição 
+        TIPO_DADO tipo_expr_if = Expr(); 
+        checaCondicao("if", tipo_expr_if); 
         
         if (t.cat != SN || t.codigo != FECHA_PAREN) erro("Esperado ')' após expressão do 'if'.");
         t = Analex(fd); 
  
         rotuloElse = novoRotulo();
-        printf("GOFALSE L%d\n", rotuloElse);
+        gerar_codigo("GOFALSE L%d", rotuloElse);
         Cmd(); 
 
         if (t.cat == PR && t.codigo == ELSE) {
             rotuloFim = novoRotulo();
-            printf("GOTO L%d\n", rotuloFim);
-            printf("LABEL L%d\n", rotuloElse);
+            gerar_codigo("GOTO L%d", rotuloFim);
+            gerar_codigo("LABEL L%d", rotuloElse);
             t = Analex(fd); 
             Cmd(); 
-            printf("LABEL L%d\n", rotuloFim);
+            gerar_codigo("LABEL L%d", rotuloFim);
         } else {
-            printf("LABEL L%d\n", rotuloElse);
+            gerar_codigo("LABEL L%d", rotuloElse);
         }
     }
     else if (t.cat == PR && t.codigo == WHILE) {
         int rotuloInicio, rotuloFim;
         rotuloInicio = novoRotulo();
         rotuloFim = novoRotulo();
-        printf("LABEL L%d\n", rotuloInicio);
+        gerar_codigo("LABEL L%d", rotuloInicio);
         t = Analex(fd); 
         if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'while'.");
         t = Analex(fd); 
@@ -506,11 +507,11 @@ void Cmd() {
         
         if (t.cat != SN || t.codigo != FECHA_PAREN) erro("Esperado ')' após expressão do 'while'.");
         t = Analex(fd);
-        printf("GOFALSE L%d\n", rotuloFim);
+        gerar_codigo("GOFALSE L%d", rotuloFim);
         Cmd(); 
 
-        printf("GOTO L%d\n", rotuloInicio);
-        printf("LABEL L%d\n", rotuloFim);
+        gerar_codigo("GOTO L%d", rotuloInicio);
+        gerar_codigo("LABEL L%d", rotuloFim);
     }
     else if (t.cat == PR && t.codigo == FOR) {
         t = Analex(fd); if (t.cat != SN || t.codigo != ABRE_PAREN) erro("Esperado '(' após 'for'.");
@@ -575,13 +576,13 @@ TIPO_DADO Termo() {
         
         if (op.codigo == MULTIPLICACAO || op.codigo == DIVISAO) {
             tipo_esq = getTipoResultanteAritmetico(tipo_esq, tipo_dir);
-            if (op.codigo == MULTIPLICACAO) printf("MUL\n");
-            else if (op.codigo == DIVISAO) printf("DIV\n");
+            if (op.codigo == MULTIPLICACAO) gerar_codigo("MUL");
+            else if (op.codigo == DIVISAO) gerar_codigo("DIV");
 
         } else if (op.codigo == AND) {
             tipo_esq = getTipoResultanteLogico(tipo_esq, tipo_dir);
 
-            printf("AND\n");
+            gerar_codigo("AND");
         }
     }
     return tipo_esq; 
@@ -601,12 +602,12 @@ TIPO_DADO Expr_simp() {
 
         if (op.codigo == ADICAO || op.codigo == SUBTRACAO) {
             tipo_esq = getTipoResultanteAritmetico(tipo_esq, tipo_dir);
-            if (op.codigo == ADICAO) printf("ADD\n"); 
-            else if (op.codigo == SUBTRACAO) printf("SUB\n"); 
+            if (op.codigo == ADICAO) gerar_codigo("ADD"); 
+            else if (op.codigo == SUBTRACAO) gerar_codigo("SUB"); 
 
         } else if (op.codigo == OR) {
             tipo_esq = getTipoResultanteLogico(tipo_esq, tipo_dir);
-            printf("OR\n");
+            gerar_codigo("OR");
         }
     }
     return tipo_esq; 
@@ -621,46 +622,36 @@ TIPO_DADO Expr() {
         Op_rel(); // Consome o operador relacional
         TIPO_DADO tipo_dir = Expr_simp(); 
 
-        // A checagem semântica garante que os tipos são comparáveis
         TIPO_DADO tipo_resultado = getTipoResultanteRelacional(tipo_esq, tipo_dir);
         
-        // --- INÍCIO DO CÓDIGO COMPLETADO ---
-
-        // Passo 1: Deixar o resultado de (esquerda - direita) na pilha.
-        // A pilha agora conterá o resultado de 'tipo_esq - tipo_dir'.
-        printf("SUB\n"); 
+        gerar_codigo("SUB"); 
         
-        // Passo 2: Gerar a instrução de comparação específica.
-        // Assumimos que a Máquina de Pilha tem opcodes que
-        // consomem o resultado da subtração, o comparam com zero,
-        // e empilham 1 (true) ou 0 (false).
         switch (op.codigo) {
             case IGUALDADE:
                 // Se (a-b) == 0, então a == b.
-                printf("EQ\n");
+                gerar_codigo("EQ");
                 break;
             case DIFERENTE:
                 // Se (a-b) != 0, então a != b.
-                printf("NE\n");
+                gerar_codigo("NE");
                 break;
             case MENOR_QUE:
                 // Se (a-b) < 0, então a < b.
-                printf("LT\n");
+                gerar_codigo("LT");
                 break;
             case MENOR_IGUAL:
                 // Se (a-b) <= 0, então a <= b.
-                printf("LE\n");
+                gerar_codigo("LE");
                 break;
             case MAIOR_QUE:
                 // Se (a-b) > 0, então a > b.
-                printf("GT\n");
+                gerar_codigo("GT");
                 break;
             case MAIOR_IGUAL:
                 // Se (a-b) >= 0, então a >= b.
-                printf("GE\n");
+                gerar_codigo("GE");
                 break;
         }
-        // --- FIM DO CÓDIGO COMPLETADO ---
         
         return tipo_resultado; // O tipo da expressão é sempre booleano
     }
@@ -671,8 +662,6 @@ TIPO_DADO Expr() {
 void fator_cont(IDENTIFICADOR func_id) {
     t = Analex(fd); // Consome o '('
 
-    // Vamos assumir que os parâmetros da função estão na tabela de símbolos
-    // logo após a própria função. Precisamos encontrar o primeiro.
     int indice_primeiro_param = func_id.endereco + 1;
     int arg_count = 0;
 
@@ -730,9 +719,9 @@ void fator_cont_array(IDENTIFICADOR id) {
         erro_semantico("O índice de um array deve ser uma expressão do tipo int.");
     }
     
-    printf("ADD\n");
+    gerar_codigo("ADD");
     
-    printf("LDSTK %d\n", id.escopo == GLOBAL ? 0 : 1);
+    gerar_codigo("LDSTK %d", id.escopo == GLOBAL ? 0 : 1);
     
     if (t.cat != SN || t.codigo != FECHA_COLCH) {
         erro("Esperado ']' para fechar acesso ao array.");
@@ -745,17 +734,17 @@ TIPO_DADO Fator() {
     TIPO_DADO tipoRetorno = TIPO_VAZIO;
 
     if (t.cat == CT_INT) {
-        printf("PUSH %d\n", t.valor_int);
+        gerar_codigo("PUSH %d", t.valor_int);
         t = Analex(fd); 
         return TIPO_INT;
     } 
     else if (t.cat == CT_REAL) {
-        printf("PUSH %f\n", t.valor_real);
+        gerar_codigo("PUSH %f", t.valor_real);
         t = Analex(fd);
         return TIPO_FLOAT; 
     }
     else if (t.cat == CT_CHAR) {
-        printf("PUSH %d\n", (int)t.caractere);
+        gerar_codigo("PUSH %d", (int)t.caractere);
         t = Analex(fd);
         return TIPO_CHAR; 
     }
@@ -798,9 +787,9 @@ TIPO_DADO Fator() {
             }
             
             if (id.array) {
-                printf("PUSH %d\n", id.endereco);
+                gerar_codigo("PUSH %d", id.endereco);
             } else {
-                printf("LOAD %d, %d\n", id.escopo == GLOBAL ? 0 : 1, id.endereco);
+                gerar_codigo("LOAD %d, %d", id.escopo == GLOBAL ? 0 : 1, id.endereco);
             }
 
             fator_cont_array(id);
